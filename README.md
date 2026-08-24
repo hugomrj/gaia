@@ -30,6 +30,17 @@ Para ejecutar:
 ```
 ./gaia
 ```
+
+Configuración
+
+Las variables de entorno se definen en el archivo .env.
+
+```
+GAIA_ADMIN_USER=admin
+GAIA_ADMIN_PASSWORD_HASH=
+```
+
+
 Estado
 
 Proyecto en desarrollo.
