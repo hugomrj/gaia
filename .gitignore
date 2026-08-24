@@ -1,0 +1,40 @@
+
+### `.gitignore`
+
+```gitignore
+# Compilación
+gaia
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Directorios de compilación
+bin/
+build/
+dist/
+
+# Go
+vendor/
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Archivos temporales
+*.tmp
+*.temp

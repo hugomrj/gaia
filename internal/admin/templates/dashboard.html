@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard · GAIA</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+</head>
+<body>
+
+    <!-- Header del sitio (siempre visible) -->
+    <header class="site-header">
+        <div class="brand" aria-label="Marca GAIA">GAIA</div>
+        <nav aria-label="Navegación de usuario">
+            <a href="/admin/logout" class="btn-logout">Cerrar Sesión</a>
+        </nav>
+    </header>
+
+    <!-- Contenido principal de la página -->
+    <main class="dashboard-main">
+        
+        <!-- Sección agrupada lógicamente -->
+        <section aria-labelledby="dashboard-heading">
+            
+            <header class="page-header">
+                <h1>Dashboard</h1>
+                <p>Estado general del sistema en tiempo real</p>
+            </header>
+
+            <!-- Grid semántico: role="list" indica a los lectores de pantalla que es una lista de elementos relacionados -->
+            <div class="kpi-grid" role="list" aria-label="Indicadores clave de rendimiento">
+                
+                <article class="kpi-card" role="listitem">
+                    <h2>Estado</h2>
+                    <p class="kpi-value status-online">ONLINE</p>
+                </article>
+
+                <article class="kpi-card" role="listitem">
+                    <h2>Modelo</h2>
+                    <p class="kpi-value">llama.cpp</p>
+                </article>
+
+                <article class="kpi-card" role="listitem">
+                    <h2>Requests</h2>
+                    <p class="kpi-value">1.245</p>
+                </article>
+
+                <article class="kpi-card" role="listitem">
+                    <h2>Versión</h2>
+                    <p class="kpi-value">0.1.0</p>
+                </article>
+
+            </div>
+        </section>
+
+    </main>
+
+</body>
+</html>
