@@ -1,79 +1,42 @@
+// cmd/app/main.go
 package main
 
 import (
 	"log"
-	"net/http"
 	"os"
 
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
+	"gaia/internal/brain"
+	"gaia/internal/providers/mistral"
+	"gaia/internal/router"
+	"gaia/internal/state"
 
-	"gaia/internal/admin/service"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-
+	// 1. Cargar variables de entorno
 	if err := godotenv.Load(); err != nil {
-		log.Println("No se encontró el archivo .env")
+		log.Println("No se encontró el archivo .env, usando variables del sistema")
 	}
 
 	adminUser := os.Getenv("GAIA_ADMIN_USER")
 	adminPasswordHash := os.Getenv("GAIA_ADMIN_PASSWORD_HASH")
 
-	router := gin.Default()
+	if adminUser == "" || adminPasswordHash == "" {
+		log.Println("ADVERTENCIA: GAIA_ADMIN_USER o GAIA_ADMIN_PASSWORD_HASH están vacíos en el .env")
+	}
 
-	router.LoadHTMLGlob("internal/admin/templates/*.html")
+	// 2. Inicializar el "Cerebro" y dependencias de GAIA
+	stateStore := state.NewMemoryStore()
+	llmProvider := mistral.NewClient()
+	gaiaBrain := brain.NewBrain(llmProvider, stateStore)
 
-	router.Static("/admin/static", "internal/admin/static")
+	// 3. Configurar todas las rutas (la magia ocurre aquí dentro)
+	appRouter := router.Setup(adminUser, adminPasswordHash, gaiaBrain)
 
-	router.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"name":    "GAIA",
-			"version": "0.1.0",
-			"status":  "running",
-		})
-	})
-
-	router.GET("/admin/login", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "login.html", nil)
-	})
-
-
-
-
-	router.POST("/admin/login", func(c *gin.Context) {
-
-		username := c.PostForm("username")
-		password := c.PostForm("password")
-	
-		log.Printf("DEBUG usuario recibido: %q", username)
-		log.Printf("DEBUG usuario esperado: %q", adminUser)
-		log.Printf("DEBUG password recibida: %t", password != "")
-		log.Printf("DEBUG hash cargado: %t", adminPasswordHash != "")
-	
-		userOK := username == adminUser
-		passwordOK := service.CheckPassword(password, adminPasswordHash)
-	
-		log.Printf("DEBUG usuario correcto: %t", userOK)
-		log.Printf("DEBUG contraseña correcta: %t", passwordOK)
-	
-		if !userOK || !passwordOK {
-			c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-				"error": "Credenciales inválidas",
-			})
-			return
-		}
-	
-		c.Redirect(http.StatusFound, "/admin/dashboard")
-	})
-
-
-	
-
-
-	router.GET("/admin/dashboard", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "dashboard.html", nil)
-	})
-
-	router.Run(":8080")
+	// 4. Iniciar el servidor
+	log.Println("GAIA iniciando en http://localhost:8080")
+	if err := appRouter.Run(":8080"); err != nil {
+		log.Fatalf("Error al iniciar el servidor: %v", err)
+	}
 }

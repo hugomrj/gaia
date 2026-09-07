@@ -19,6 +19,17 @@
                 <p>AI Gateway · Administración</p>
             </header>
 
+
+
+            <!-- AGREGAR ESTO: Bloque de mensaje de error -->
+            {{ if .error }}
+            <div class="alert alert-error" role="alert">
+                {{ .error }}
+            </div>
+            {{ end }}
+            <!-- FIN DEL BLOQUE -->
+
+
             <!-- Formulario con aria-label para contexto -->
             <form action="/admin/login" method="post" aria-label="Formulario de inicio de sesión">
                 

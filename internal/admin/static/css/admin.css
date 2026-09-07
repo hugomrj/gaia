@@ -262,9 +262,6 @@ fieldset {
 
 
 
-
-
-
 /* KPI Grid */
 .kpi-grid {
   display: grid;
@@ -337,4 +334,28 @@ fieldset {
   .site-header { padding: 16px; }
   .login-box { padding: 32px 24px; }
   .login-header h1 { font-size: 36px; }
+}
+
+
+
+
+.alert-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #f87171;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
