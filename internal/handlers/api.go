@@ -9,44 +9,44 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type ManejadorAPI struct {
-	cerebro *brain.Cerebro
+type APIHandler struct {
+	brain *brain.Brain
 }
 
-func NewManejadorAPI(cerebro *brain.Cerebro) *ManejadorAPI {
-	return &ManejadorAPI{cerebro: cerebro}
+func NewAPIHandler(b *brain.Brain) *APIHandler {
+	return &APIHandler{brain: b}
 }
 
-// Analizar es el endpoint: POST /v1/analyze
-func (h *ManejadorAPI) Analizar(c *gin.Context) {
-	var req models.SolicitudChat
+// Analyze — Cerebro 1: POST /v1/analyze
+func (h *APIHandler) Analyze(c *gin.Context) {
+	var req models.ChatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	analisis, err := h.cerebro.ProcesarMensaje(c.Request.Context(), req)
+	analysis, err := h.brain.ProcessMessage(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, analisis)
+	c.JSON(http.StatusOK, analysis)
 }
 
-// Sintetizar es el endpoint: POST /v1/synthesize
-func (h *ManejadorAPI) Sintetizar(c *gin.Context) {
-	var resultado models.ResultadoEjecucion
-	if err := c.ShouldBindJSON(&resultado); err != nil {
+// Synthesize — Cerebro 2: POST /v1/synthesize
+func (h *APIHandler) Synthesize(c *gin.Context) {
+	var result models.ExecutionResult
+	if err := c.ShouldBindJSON(&result); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	sintesis, err := h.cerebro.ProcesarResultado(c.Request.Context(), resultado)
+	synthesis, err := h.brain.ProcessResult(c.Request.Context(), result)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, sintesis)
+	c.JSON(http.StatusOK, synthesis)
 }
