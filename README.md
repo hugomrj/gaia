@@ -218,6 +218,75 @@ Usar las credenciales del .env. Panel en desarrollo.
 - [ ] Streaming (pendiente)
 - [ ] Idempotencia (pendiente)
 
+## Despliegue y Releases (CI/CD)
+
+GAIA usa **GitHub Actions** para compilar automáticamente los binarios y
+publicarlos como *Releases* descargables. Esto evita compilar en el servidor
+de producción (ahorra RAM y tiempo).
+
+### ¿Cómo funciona?
+
+Existen dos workflows en `.github/workflows/`:
+
+1. **`build.yml`**: se ejecuta en cada `git push` a `main`. El binario
+   resultante queda disponible en la pestaña **Actions → Artifacts** por
+   30 días. Útil para pruebas rápidas.
+
+2. **`release.yml`**: se ejecuta **solo cuando creás un tag** (ej. `v0.1.0`).
+   Genera un *Release* permanente en GitHub con el binario adjunto, listo
+   para descargar desde el instalador automático.
+
+### Publicar una nueva versión (Release)
+
+El simple `git push` NO genera un Release descargable de forma permanente.
+Debés crear un tag de versión:
+
+    git add .
+    git commit -m "feat: descripción del cambio"
+    git tag v0.1.1
+    git push origin main
+    git push origin v0.1.1
+
+Luego:
+
+1. Ir a la pestaña **Actions** del repositorio.
+2. Esperar ~2 minutos a que el workflow **Release GAIA** termine con ✅.
+3. Ir a la pestaña **Releases** (columna derecha del repo) y verificar que
+   el binario `gaia` esté adjunto a la nueva versión.
+
+### ⚠️ Importante sobre los tags
+
+- **Los tags son inmutables**: NO se pueden sobrescribir. Si intentás crear
+  `v0.1.0` cuando ya existe, Git te dará un error.
+- **Versionado semántico**: incrementá siempre el número de versión
+  (`v0.1.0` → `v0.1.1` → `v0.2.0` → `v1.0.0`).
+- **Si rompés un tag** (ej. lo subiste antes de tiempo):
+
+      git tag -d v0.1.0
+      git push --delete origin v0.1.0
+      # corregir el problema y volver a crear el tag:
+      git tag v0.1.0
+      git push origin v0.1.0
+
+### Permisos del workflow
+
+El archivo `.github/workflows/release.yml` debe incluir el bloque de
+permisos para poder crear Releases en GitHub:
+
+    permissions:
+      contents: write
+
+Sin esto, el workflow fallará con:
+`Resource not accessible by integration`.
+
+### Flujo recomendado
+
+| Acción | Resultado |
+|--------|-----------|
+| `git push` (cambios en main) | Compilación temporal en *Artifacts* (30 días) |
+| `git tag vX.Y.Z && git push origin vX.Y.Z` | Release permanente con binario |
+| Ejecutar el instalador en el servidor | Descarga el último Release y configura systemd |
+
 ## Contribuir
 
 1. Crear branch: git checkout -b feature/nombre
@@ -227,4 +296,3 @@ Usar las credenciales del .env. Panel en desarrollo.
 
 ## Licencia
 
-Privado.

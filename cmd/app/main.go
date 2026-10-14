@@ -24,14 +24,20 @@ func main() {
 		log.Println("ADVERTENCIA: GAIA_ADMIN_USER o GAIA_ADMIN_PASSWORD_HASH están vacíos en el .env")
 	}
 
-	// Inicializar el cerebro (sin state store)
+	// Puerto configurable (default 8080)
+	port := os.Getenv("GAIA_PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	// Inicializar el cerebro
 	llmProvider := mistral.NewClient()
 	gaiaBrain := brain.NewBrain(llmProvider)
 
 	appRouter := router.Setup(adminUser, adminPasswordHash, gaiaBrain)
 
-	log.Println("GAIA iniciando en http://localhost:8080")
-	if err := appRouter.Run(":8080"); err != nil {
+	log.Printf("GAIA iniciando en http://localhost:%s", port)
+	if err := appRouter.Run(":" + port); err != nil {
 		log.Fatalf("Error al iniciar el servidor: %v", err)
 	}
 }
