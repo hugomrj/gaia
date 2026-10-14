@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAIA · Documentación API</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  :root {
+    --bg:        #0A0A0A;
+    --bg-side:   #0F0F0F;
+    --bg-card:   #141414;
+    --bg-code:   #0D0D0D;
+    --border:    #262626;
+    --text:      #F5F5F5;
+    --muted:     #8A8A8A;
+    --accent:    #00E5A0;
+    --accent-dim:#00B37A;
+    --warn:      #FFB347;
+    --danger:    #FF4D4D;
+    --mono:      ui-monospace, 'JetBrains Mono', Consolas, monospace;
+    --sans:      -apple-system, system-ui, 'Segoe UI', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar {
+    background: var(--bg-side);
+    padding: 32px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+  }
+
+  .brand {
+    padding: 0 24px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+
+  .brand h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .brand p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .nav-group {
+    padding: 0 16px;
+    margin-bottom: 24px;
+  }
+
+  .nav-group h4 {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 0 8px 8px;
+  }
+
+  .nav-group a {
+    display: block;
+    padding: 8px 12px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+
+  .nav-group a:hover {
+    background: var(--bg-card);
+    color: var(--accent);
+  }
+
+  /* ---------- MAIN ---------- */
+  main {
+    max-width: 900px;
+    padding: 48px 56px 96px;
+  }
+
+  h2 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  h2:first-of-type {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 32px 0 12px;
+  }
+
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 20px 0 8px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  p {
+    margin-bottom: 16px;
+    color: #D4D4D4;
+  }
+
+  a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  /* ---------- CODE ---------- */
+  code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    background: var(--bg-card);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--accent);
+  }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 12px 0 20px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  pre code {
+    background: transparent;
+    padding: 0;
+    color: #E5E5E5;
+  }
+
+  .lang {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--bg-card);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ---------- ENDPOINT ---------- */
+  .endpoint {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+
+  .endpoint-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .method {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .method.get { background: #1E3A8A; color: #BFDBFE; }
+  .method.post { background: #166534; color: #BBF7D0; }
+
+  .path {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ---------- TABLE ---------- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 13px;
+  }
+
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    background: var(--bg-card);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+
+  td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  td code {
+    font-size: 12px;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* ---------- BADGES ---------- */
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge.required { background: #7F1D1D; color: #FECACA; }
+  .badge.optional { background: #1E3A8A; color: #BFDBFE; }
+  .badge.ok       { background: #166534; color: #BBF7D0; }
+
+  /* ---------- CALLOUT ---------- */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--bg-card);
+    padding: 14px 20px;
+    margin: 20px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 14px;
+  }
+
+  .callout.warn {
+    border-left-color: var(--warn);
+  }
+
+  .callout.danger {
+    border-left-color: var(--danger);
+  }
+
+  .callout strong {
+    color: var(--accent);
+  }
+
+  .callout.warn strong {
+    color: var(--warn);
+  }
+
+  .callout.danger strong {
+    color: var(--danger);
+  }
+
+  /* ---------- DIAGRAM ---------- */
+  .diagram {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: #E5E5E5;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.7;
+  }
+
+  /* ---------- SCROLLBAR ---------- */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #404040; }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 768px) {
+    body { grid-template-columns: 1fr; }
+    .sidebar { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    main { padding: 24px 20px 64px; }
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand">
+    <h1>GAIA</h1>
+    <p>Documentación de API</p>
+  </div>
+
+  <nav class="nav-group">
+    <h4>Introducción</h4>
+    <a href="#overview">Overview</a>
+    <a href="#philosophy">Filosofía</a>
+    <a href="#architecture">Arquitectura</a>
+  </nav>
+
+  <nav class="nav-group">
+    <h4>Endpoints</h4>
+    <a href="#health">GET /health</a>
+    <a href="#analyze">POST /v1/analyze</a>
+    <a href="#normalize">POST /v1/normalize</a>
+    <a href="#synthesize">POST /v1/synthesize</a>
+  </nav>
+
+  <nav class="nav-group">
+    <h4>Guías</h4>
+    <a href="#flow">Flujo completo</a>
+    <a href="#history">Manejo del historial</a>
+    <a href="#errors">Códigos de error</a>
+  </nav>
+
+  <nav class="nav-group">
+    <h4>Referencia</h4>
+    <a href="#models">Modelos de datos</a>
+    <a href="#best-practices">Buenas prácticas</a>
+  </nav>
+</aside>
+
+<main>
+
+<!-- ==================== OVERVIEW ==================== -->
+<section id="overview">
+  <h2>GAIA · API</h2>
+  <p>
+    GAIA es un orquestador conversacional para sistemas empresariales.
+    Convierte mensajes en lenguaje natural a instrucciones estructuradas,
+    normaliza datos, y genera respuestas naturales. Está diseñada para ser
+    consumida por cualquier cliente (bot, ERP, CRM) en cualquier lenguaje.
+  </p>
+
+  <p>
+    <strong>Base URL (desarrollo):</strong> <code>http://localhost:8080</code><br>
+    <strong>Formato:</strong> JSON<br>
+    <strong>Autenticación:</strong> por definir (multi-tenant, próximamente)<br>
+  </p>
+</section>
+
+<!-- ==================== FILOSOFÍA ==================== -->
+<section id="philosophy">
+  <h2>Filosofía</h2>
+  <p>
+    <strong>GAIA piensa, el cliente actúa.</strong>
+  </p>
+  <ul style="list-style: none; padding-left: 0;">
+    <li style="padding: 6px 0;">✓ GAIA es <strong>stateless</strong>: no guarda sesiones.</li>
+    <li style="padding: 6px 0;">✓ GAIA <strong>no conoce</strong> las funciones del cliente.</li>
+    <li style="padding: 6px 0;">✓ GAIA <strong>no ejecuta</strong> código ni toca bases de datos.</li>
+    <li style="padding: 6px 0;">✓ El cliente es el <strong>agente</strong>: orquesta, ejecuta y mantiene el historial.</li>
+  </ul>
+
+  <div class="callout">
+    <strong>Implicancia clave:</strong> el cliente maneja el historial y el estado
+    entre turnos. GAIA solo recibe lo que necesita para procesar cada request.
+  </div>
+</section>
+
+<!-- ==================== ARQUITECTURA ==================== -->
+<section id="architecture">
+  <h2>Arquitectura</h2>
+
+  <div class="diagram">
+Usuario → Cliente → POST /v1/analyze   → Planner      (¿qué quiere?)
+                  → POST /v1/normalize → Normalizer   (opcional)
+                  → (cliente ejecuta la función real)
+                  → POST /v1/synthesize→ Synthesizer  (¿cómo lo digo?)
+                  → Usuario</div>
+
+  <h3>Componentes</h3>
+  <table>
+    <tr>
+      <th>Componente</th>
+      <th>Rol</th>
+    </tr>
+    <tr>
+      <td><strong>Planner</strong></td>
+      <td>Analiza lenguaje natural. Devuelve <code>intent</code>, <code>function_name</code>, <code>parameters</code> y <code>confidence</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Normalizer</strong></td>
+      <td>Convierte valores crudos (<code>"hoy"</code>, <code>"150 mil"</code>) a formato estándar (ISO 8601, números).</td>
+    </tr>
+    <tr>
+      <td><strong>Synthesizer</strong></td>
+      <td>Redacta la respuesta final al usuario. Tiene 4 modos: <code>conversation</code>, <code>clarify</code>, <code>respond</code>, <code>error</code>.</td>
+    </tr>
+  </table>
+</section>
+
+<!-- ==================== HEALTH ==================== -->
+<section id="health">
+  <h2>Health check</h2>
+
+  <div class="endpoint">
+    <div class="endpoint-header">
+      <span class="method get">GET</span>
+      <span class="path">/health</span>
+    </div>
+    <p style="margin: 0;">Verifica que el servidor está vivo.</p>
+  </div>
+
+  <h4>Respuesta</h4>
+  <pre><code>{
+  "name": "GAIA",
+  "status": "running",
+  "version": "0.1.0"
+}</code></pre>
+</section>
+
+<!-- ==================== ANALYZE ==================== -->
+<section id="analyze">
+  <h2>POST /v1/analyze</h2>
+  <p>
+    Analiza el mensaje del usuario y devuelve la intención, el nombre de la
+    función y los parámetros extraídos. El Planner <strong>no normaliza</strong>
+    valores: los extrae crudos tal como el usuario los escribió.
+  </p>
+
+  <h4>Request body</h4>
+  <table>
+    <tr>
+      <th>Campo</th>
+      <th>Tipo</th>
+      <th>Obligatorio</th>
+      <th>Descripción</th>
+    </tr>
+    <tr>
+      <td><code>session_id</code></td>
+      <td>string</td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Identificador de la conversación. Útil para logs. GAIA no lo persiste.</td>
+    </tr>
+    <tr>
+      <td><code>message</code></td>
+      <td>string</td>
+      <td><span class="badge required">requerido</span></td>
+      <td>Mensaje del usuario en lenguaje natural.</td>
+    </tr>
+    <tr>
+      <td><code>collected_data</code></td>
+      <td>object | null</td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Datos acumulados de turnos previos: <code>intent</code>, <code>function_name</code>, <code>parameters</code>.</td>
+    </tr>
+    <tr>
+      <td><code>history</code></td>
+      <td>array</td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Últimos turnos (máx. 3) para dar contexto. Ver <a href="#history">Manejo del historial</a>.</td>
+    </tr>
+  </table>
+
+  <h4>Ejemplo de request</h4>
+  <pre><code>POST /v1/analyze
+Content-Type: application/json
+
+{
+  "session_id": "abc-123",
+  "message": "cuanto facture hoy",
+  "collected_data": null,
+  "history": []
+}</code></pre>
+
+  <h4>Response</h4>
+  <table>
+    <tr>
+      <th>Campo</th>
+      <th>Tipo</th>
+      <th>Descripción</th>
+    </tr>
+    <tr>
+      <td><code>intent</code></td>
+      <td>string</td>
+      <td>Intención general en inglés snake_case. Ej: <code>query_billing</code>.</td>
+    </tr>
+    <tr>
+      <td><code>function_name</code></td>
+      <td>string</td>
+      <td>Función sugerida en inglés snake_case. Ej: <code>get_daily_billing</code>. Vacío si es conversación.</td>
+    </tr>
+    <tr>
+      <td><code>parameters</code></td>
+      <td>object</td>
+      <td>Valores crudos extraídos del mensaje. Sin normalizar.</td>
+    </tr>
+    <tr>
+      <td><code>confidence</code></td>
+      <td>number</td>
+      <td>Nivel de confianza (0.0 a 1.0).</td>
+    </tr>
+    <tr>
+      <td><code>original_input</code></td>
+      <td>string</td>
+      <td>El mensaje original tal como llegó.</td>
+    </tr>
+  </table>
+
+  <h4>Ejemplo de response</h4>
+  <pre><code>{
+  "intent": "query_billing",
+  "function_name": "get_daily_billing",
+  "parameters": {"date": "hoy"},
+  "confidence": 0.95,
+  "original_input": "cuanto facture hoy"
+}</code></pre>
+
+  <div class="callout warn">
+    <strong>Atención:</strong> <code>function_name</code> puede ser un nombre
+    inventado por el LLM que no exista en tu sistema. Es responsabilidad del
+    cliente verificar contra su catálogo antes de ejecutar.
+  </div>
+</section>
+
+<!-- ==================== NORMALIZE ==================== -->
+<section id="normalize">
+  <h2>POST /v1/normalize</h2>
+  <p>
+    Convierte valores crudos a formato estándar. Es <strong>opcional</strong>:
+    el cliente decide cuándo llamarlo. No usa LLM, es determinístico.
+  </p>
+
+  <h4>Qué normaliza</h4>
+  <table>
+    <tr>
+      <th>Tipo</th>
+      <th>Entrada</th>
+      <th>Salida</th>
+    </tr>
+    <tr>
+      <td>Fecha relativa</td>
+      <td><code>"hoy"</code></td>
+      <td><code>"2026-10-14"</code></td>
+    </tr>
+    <tr>
+      <td>Período</td>
+      <td><code>"este mes"</code></td>
+      <td><code>{"from": "2026-10-01", "to": "2026-10-31"}</code></td>
+    </tr>
+    <tr>
+      <td>Número</td>
+      <td><code>"150 mil"</code></td>
+      <td><code>150000</code></td>
+    </tr>
+    <tr>
+      <td>Moneda</td>
+      <td><code>"150000 Gs."</code></td>
+      <td><code>150000</code></td>
+    </tr>
+    <tr>
+      <td>Booleano</td>
+      <td><code>"sí"</code></td>
+      <td><code>true</code></td>
+    </tr>
+    <tr>
+      <td>Cédula numérica</td>
+      <td><code>1234567</code></td>
+      <td><code>"1234567"</code></td>
+    </tr>
+  </table>
+
+  <h4>Request body</h4>
+  <table>
+    <tr>
+      <th>Campo</th>
+      <th>Tipo</th>
+      <th>Obligatorio</th>
+      <th>Descripción</th>
+    </tr>
+    <tr>
+      <td><code>parameters</code></td>
+      <td>object</td>
+      <td><span class="badge required">requerido</span></td>
+      <td>Parámetros crudos a normalizar.</td>
+    </tr>
+  </table>
+
+  <h4>Ejemplo de request</h4>
+  <pre><code>POST /v1/normalize
+Content-Type: application/json
+
+{
+  "parameters": {
+    "date": "el lunes",
+    "amount": "150 mil",
+    "is_active": "sí"
+  }
+}</code></pre>
+
+  <h4>Ejemplo de response</h4>
+  <pre><code>{
+  "parameters": {
+    "date": "2026-10-19",
+    "amount": 150000,
+    "is_active": true
+  },
+  "normalized": ["date", "amount", "is_active"],
+  "not_normalized": []
+}</code></pre>
+
+  <div class="callout">
+    Los valores que no se pueden normalizar se devuelven <strong>tal cual</strong>
+    y aparecen en <code>not_normalized</code>.
+  </div>
+</section>
+
+<!-- ==================== SYNTHESIZE ==================== -->
+<section id="synthesize">
+  <h2>POST /v1/synthesize</h2>
+  <p>
+    Redacta la respuesta final al usuario. Decide el modo automáticamente
+    según los datos que recibe.
+  </p>
+
+  <h4>Modos automáticos</h4>
+  <table>
+    <tr>
+      <th>Modo</th>
+      <th>Cuándo</th>
+      <th>Ejemplo</th>
+    </tr>
+    <tr>
+      <td><code>conversation</code></td>
+      <td><code>intent</code> empieza con <code>"conversation"</code></td>
+      <td>"¡Hola! ¿En qué te ayudo?"</td>
+    </tr>
+    <tr>
+      <td><code>clarify</code></td>
+      <td>Hay <code>missing_slots</code> sin <code>raw_data</code></td>
+      <td>"¿Para qué fecha querés la cita?"</td>
+    </tr>
+    <tr>
+      <td><code>respond</code></td>
+      <td>Hay <code>raw_data</code> y no es error</td>
+      <td>"Tu cita quedó agendada."</td>
+    </tr>
+    <tr>
+      <td><code>error</code></td>
+      <td><code>error_code</code> presente o <code>raw_data</code> parece error</td>
+      <td>"No pude procesar tu solicitud."</td>
+    </tr>
+  </table>
+
+  <h4>Request body</h4>
+  <table>
+    <tr>
+      <th>Campo</th>
+      <th>Tipo</th>
+      <th>Obligatorio</th>
+      <th>Descripción</th>
+    </tr>
+    <tr>
+      <td><code>original_message</code></td>
+      <td>string</td>
+      <td><span class="badge required">requerido</span></td>
+      <td>Mensaje original del usuario.</td>
+    </tr>
+    <tr>
+      <td><code>intent</code></td>
+      <td>string</td>
+      <td><span class="badge required">requerido</span></td>
+      <td>Intención que devolvió el Planner.</td>
+    </tr>
+    <tr>
+      <td><code>function_name</code></td>
+      <td>string</td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Función que se ejecutó.</td>
+    </tr>
+    <tr>
+      <td><code>parameters</code></td>
+      <td>object</td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Parámetros usados.</td>
+    </tr>
+    <tr>
+      <td><code>missing_slots</code></td>
+      <td>array</td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Datos que faltan. Si tiene items → modo <code>clarify</code>.</td>
+    </tr>
+    <tr>
+      <td><code>raw_data</code></td>
+      <td>string</td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Datos crudos del ERP tras ejecutar. Si está → modo <code>respond</code>.</td>
+    </tr>
+    <tr>
+      <td><code>error_code</code></td>
+      <td>string</td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Forzar modo <code>error</code>. Valores: <code>function_not_found</code>, <code>execution_failed</code>, <code>timeout</code>.</td>
+    </tr>
+    <tr>
+      <td><code>history</code></td>
+      <td>array</td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Últimos turnos para dar contexto.</td>
+    </tr>
+  </table>
+
+  <h4>Response</h4>
+  <table>
+    <tr>
+      <th>Campo</th>
+      <th>Tipo</th>
+      <th>Descripción</th>
+    </tr>
+    <tr>
+      <td><code>response</code></td>
+      <td>string</td>
+      <td>Texto natural para mostrar al usuario.</td>
+    </tr>
+    <tr>
+      <td><code>history_entry</code></td>
+      <td>object</td>
+      <td>Entrada lista para agregar al historial del cliente (con timestamp).</td>
+    </tr>
+    <tr>
+      <td><code>mode</code></td>
+      <td>string</td>
+      <td>Modo usado: <code>conversation</code>, <code>clarify</code>, <code>respond</code>, <code>error</code>.</td>
+    </tr>
+  </table>
+
+  <h4>Ejemplos por modo</h4>
+
+  <h4>Modo <code>clarify</code></h4>
+  <pre><code>// Request
+{
+  "original_message": "quiero una cita",
+  "intent": "create_appointment",
+  "function_name": "create_appointment",
+  "parameters": {},
+  "missing_slots": ["date", "doctor"],
+  "history": []
+}
+
+// Response
+{
+  "response": "¿Para qué fecha y con qué doctor querés la cita?",
+  "history_entry": {
+    "role": "assistant",
+    "summary": "pedí date, doctor",
+    "timestamp": "2026-10-14T10:30:00-03:00"
+  },
+  "mode": "clarify"
+}</code></pre>
+
+  <h4>Modo <code>respond</code></h4>
+  <pre><code>// Request
+{
+  "original_message": "cuanto facture hoy",
+  "intent": "query_billing",
+  "function_name": "get_daily_billing",
+  "parameters": {"date": "hoy"},
+  "raw_data": "150000",
+  "history": []
+}
+
+// Response
+{
+  "response": "Hoy has facturado un total de 150.000 Gs.",
+  "history_entry": {
+    "role": "assistant",
+    "summary": "respondí sobre query_billing",
+    "timestamp": "2026-10-14T10:30:15-03:00"
+  },
+  "mode": "respond"
+}</code></pre>
+
+  <h4>Modo <code>error</code></h4>
+  <pre><code>// Request
+{
+  "original_message": "quiero una cita",
+  "intent": "create_appointment",
+  "function_name": "create_appointment",
+  "raw_data": "ERROR: timeout conectando al ERP",
+  "error_code": "execution_failed",
+  "history": []
+}
+
+// Response
+{
+  "response": "No pude completar la operación en este momento. ¿Podés intentar de nuevo en unos minutos?",
+  "history_entry": {
+    "role": "assistant",
+    "summary": "error al procesar create_appointment",
+    "timestamp": "2026-10-14T10:30:30-03:00"
+  },
+  "mode": "error"
+}</code></pre>
+</section>
+
+<!-- ==================== FLUJO ==================== -->
+<section id="flow">
+  <h2>Flujo completo de un turno</h2>
+
+  <div class="diagram">
+1. Usuario escribe un mensaje
+
+2. Cliente → POST /v1/analyze
+   → {intent, function_name, parameters, confidence}
+
+3. Cliente:
+   a. Combina parameters con collected_data
+   b. Verifica si function_name existe en su catálogo
+   c. Calcula missing_slots comparando contra el contrato
+   d. Si no hay missing → ejecuta la función → obtiene raw_data
+
+4. Cliente → POST /v1/synthesize (opcional: /v1/normalize antes)
+   → {response, history_entry, mode}
+
+5. Cliente:
+   a. Muestra response al usuario
+   b. Agrega history_entry al historial local
+   c. Recorta el historial a 6 entradas (3 turnos)
+   d. Guarda collected_data actualizado</div>
+
+  <h3>Multi-turno (slot filling)</h3>
+
+  <div class="diagram">
+Turno 1:
+  Usuario: "quiero una cita"
+  Planner: {function_name: "create_appointment", parameters: {}}
+  Cliente: calcula missing = ["date", "doctor"]
+  Synthesizer: "¿Para qué fecha y con qué doctor?"
+
+Turno 2:
+  Usuario: "el lunes con el doctor ramirez"
+  Planner: {function_name: "create_appointment", parameters: {"date": "el lunes", "doctor": "ramirez"}}
+  Cliente: missing = [] → ejecuta → raw_data = "OK"
+  Synthesizer: "Tu cita quedó agendada para el lunes con el doctor Ramirez."</div>
+</section>
+
+<!-- ==================== HISTORIAL ==================== -->
+<section id="history">
+  <h2>Manejo del historial</h2>
+
+  <p>
+    El cliente es responsable de mantener el historial y enviarlo en cada
+    request. GAIA no lo persiste.
+  </p>
+
+  <h3>Reglas</h3>
+  <ul style="list-style: none; padding-left: 0;">
+    <li style="padding: 6px 0;">• Máximo <strong>6 entradas</strong> (3 turnos de user + assistant).</li>
+    <li style="padding: 6px 0;">• Se recorta <strong>al final del turno</strong>, después del <code>/v1/synthesize</code>.</li>
+    <li style="padding: 6px 0;">• El <code>content</code> del user es el mensaje textual.</li>
+    <li style="padding: 6px 0;">• El <code>summary</code> del assistant es un resumen corto (lo genera GAIA).</li>
+    <li style="padding: 6px 0;">• Siempre incluir <code>timestamp</code> en cada entrada.</li>
+  </ul>
+
+  <h3>Estructura</h3>
+  <pre><code>{
+  "history": [
+    {
+      "role": "user",
+      "content": "quiero una cita",
+      "timestamp": "2026-10-14T10:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "summary": "pedí date, doctor",
+      "timestamp": "2026-10-14T10:00:02Z"
+    }
+  ]
+}</code></pre>
+
+  <div class="callout warn">
+    <strong>Importante:</strong> el <code>summary</code> no es lo que ve el
+    usuario. Es un resumen para el LLM. El texto real que ve el usuario está
+    en <code>response</code> del <code>/v1/synthesize</code>.
+  </div>
+</section>
+
+<!-- ==================== ERRORES ==================== -->
+<section id="errors">
+  <h2>Códigos de error</h2>
+
+  <h3>Códigos HTTP</h3>
+  <table>
+    <tr>
+      <th>Código</th>
+      <th>Significado</th>
+    </tr>
+    <tr>
+      <td><code>200</code></td>
+      <td>OK. Todo bien.</td>
+    </tr>
+    <tr>
+      <td><code>400</code></td>
+      <td>Request inválido. Falta un campo o tiene tipo incorrecto.</td>
+    </tr>
+    <tr>
+      <td><code>401</code></td>
+      <td>No autorizado (multi-tenant, próximamente).</td>
+    </tr>
+    <tr>
+      <td><code>500</code></td>
+      <td>Error interno. Revisar logs del servidor.</td>
+    </tr>
+    <tr>
+      <td><code>503</code></td>
+      <td>Servicio no disponible (LLM caído, cuota agotada).</td>
+    </tr>
+  </table>
+
+  <h3>Error codes en <code>/v1/synthesize</code></h3>
+  <table>
+    <tr>
+      <th>error_code</th>
+      <th>Cuándo usar</th>
+    </tr>
+    <tr>
+      <td><code>function_not_found</code></td>
+      <td>El <code>function_name</code> que devolvió el Planner no existe en tu catálogo.</td>
+    </tr>
+    <tr>
+      <td><code>execution_failed</code></td>
+      <td>La función existe pero falló al ejecutar.</td>
+    </tr>
+    <tr>
+      <td><code>timeout</code></td>
+      <td>El ERP no respondió a tiempo.</td>
+    </tr>
+    <tr>
+      <td><code>invalid_parameters</code></td>
+      <td>Los parámetros no cumplen el formato esperado.</td>
+    </tr>
+  </table>
+</section>
+
+<!-- ==================== MODELOS ==================== -->
+<section id="models">
+  <h2>Modelos de datos</h2>
+
+  <h3>HistoryEntry</h3>
+  <pre><code>{
+  "role": "user" | "assistant",
+  "content": "string (solo para user)",
+  "summary": "string (solo para assistant)",
+  "timestamp": "RFC3339"
+}</code></pre>
+
+  <h3>CollectedData</h3>
+  <pre><code>{
+  "intent": "string",
+  "function_name": "string",
+  "parameters": {},
+  "missing_slots": [],
+  "status": "ready_to_execute" | "waiting_for_data"
+}</code></pre>
+</section>
+
+<!-- ==================== BUENAS PRÁCTICAS ==================== -->
+<section id="best-practices">
+  <h2>Buenas prácticas</h2>
+
+  <h3>1. Validar siempre contra tu catálogo</h3>
+  <p>
+    El Planner puede inventar <code>function_name</code> que no existen.
+    <strong>Siempre</strong> verificá contra tu lista antes de ejecutar. Si no
+    existe, mandá <code>error_code: "function_not_found"</code> al Synthesizer.
+  </p>
+
+  <h3>2. Filtrar valores placeholder</h3>
+  <p>
+    El LLM a veces devuelve valores genéricos como <code>"doctor"</code>,
+    <code>"value"</code>, <code>"unknown"</code>. Descartalos antes de ejecutar
+    y agregalos a <code>missing_slots</code>.
+  </p>
+
+  <h3>3. Recortar el historial</h3>
+  <p>
+    Máximo 6 entradas. Si no recortás, el prompt al LLM crece sin control y
+    sube el costo por request.
+  </p>
+
+  <h3>4. Manejar errores del ERP</h3>
+  <p>
+    Si la ejecución falla (timeout, excepción), mandá
+    <code>error_code</code> al Synthesizer. Así GAIA responde con una
+    disculpa amable en vez de dejar al usuario sin respuesta.
+  </p>
+
+  <h3>5. No normalizar dos veces</h3>
+  <p>
+    Si llamás a <code>/v1/normalize</code>, usá los parámetros normalizados
+    para ejecutar la función Y para el Synthesizer. No normalices por un lado
+    y ejecutes por el otro.
+  </p>
+
+  <h3>6. Resetear collected_data</h3>
+  <p>
+    Cuando el modo del Synthesizer es <code>respond</code>, <code>error</code>
+    o <code>conversation</code>, el turno está cerrado. Reseteá
+    <code>collected_data</code> a <code>null</code>.
+  </p>
+
+  <h3>7. Session ID (opcional)</h3>
+  <p>
+    Generá un UUID al iniciar cada conversación y usalo en todos los requests.
+    Sirve para logs y para multi-tenant futuro. GAIA no lo persiste.
+  </p>
+</section>
+
+<footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px;">
+  GAIA · Documentación de API · v0.1.0
+</footer>
+
+</main>
+
+</body>
+</html>

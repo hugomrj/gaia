@@ -1,3 +1,4 @@
+// internal/router/routes.go
 package router
 
 import (
@@ -20,6 +21,7 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain) *gin.Eng
 	router.Static("/admin/static", "internal/admin/static")
 	router.Static("/examples", "examples")
 
+
 	// 2. Inicializar Handlers
 	apiHandler := handlers.NewAPIHandler(gaiaBrain)
 	healthHandler := handlers.NewHealthHandler()
@@ -34,6 +36,11 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain) *gin.Eng
 			"status":  "running",
 		})
 	})
+
+	router.GET("/docs", func(c *gin.Context) {
+  	  c.HTML(http.StatusOK, "docs.html", nil)
+	})
+
 
 	// 4. API de GAIA (Aquí entran y salen los datos del cliente)
 	v1 := router.Group("/v1")
@@ -88,6 +95,8 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain) *gin.Eng
 		})
 	}
 
+
+
 	return router
 }
 
@@ -101,3 +110,4 @@ func requireAuth(c *gin.Context) {
 	}
 	c.Next()
 }
+
