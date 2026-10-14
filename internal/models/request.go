@@ -1,14 +1,37 @@
+// internal/models/request.go
 package models
 
-// ChatRequest es lo que el cliente envía a GAIA
+import "time"
+
+// ChatRequest es lo que el cliente envía a GAIA para analizar
 type ChatRequest struct {
-    SessionID     string                 `json:"session_id" binding:"required"`
-    Message       string                 `json:"message" binding:"required"`
-    ClientContext map[string]interface{} `json:"client_context"` // Tipo de sistema, dominio, etc.
+	SessionID     string                 `json:"session_id,omitempty"`
+	Message       string                 `json:"message" binding:"required"`
+	CollectedData map[string]interface{} `json:"collected_data,omitempty"`
+	History       []HistoryEntry         `json:"history,omitempty"`
 }
 
-// ExecutionResult es lo que el cliente envía después de ejecutar la función
-type ExecutionResult struct {
-    SessionID string `json:"session_id" binding:"required"`
-    Data      string `json:"data"` // Datos crudos del ERP
+// HistoryEntry es un mensaje resumido del historial (lo maneja el cliente)
+type HistoryEntry struct {
+	Role      string    `json:"role"`              // "user" | "assistant"
+	Content   string    `json:"content,omitempty"` // para mensajes del user
+	Summary   string    `json:"summary,omitempty"` // para respuestas del assistant
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// SynthesisRequest es lo que el cliente envía al Synthesizer
+type SynthesisRequest struct {
+	SessionID       string                 `json:"session_id,omitempty"`
+	OriginalMessage string                 `json:"original_message" binding:"required"` // ← NUEVO
+	Intent          string                 `json:"intent" binding:"required"`
+	FunctionName    string                 `json:"function_name,omitempty"`
+	Parameters      map[string]interface{} `json:"parameters,omitempty"`
+	MissingSlots    []string               `json:"missing_slots,omitempty"`
+	RawData         string                 `json:"raw_data,omitempty"`
+	History         []HistoryEntry         `json:"history,omitempty"`
+}
+
+// NormalizeRequest es lo que el cliente envía al Normalizer
+type NormalizeRequest struct {
+	Parameters map[string]interface{} `json:"parameters" binding:"required"`
 }

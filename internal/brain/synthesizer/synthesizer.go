@@ -5,46 +5,50 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
+	"time"
 
 	"gaia/internal/models"
 	"gaia/internal/providers"
-	"gaia/internal/state"
+)
+
+const (
+	DefaultTimezone     = "America/Asuncion"
+	MaxHistoryForPrompt = 6 // 3 turnos = 6 mensajes
 )
 
 type Synthesizer struct {
-	llm        providers.LLMProvider
-	stateStore state.StateStore
+	llm      providers.LLMProvider
+	timezone string
 }
 
-func NewSynthesizer(llm providers.LLMProvider, stateStore state.StateStore) *Synthesizer {
+func NewSynthesizer(llm providers.LLMProvider) *Synthesizer {
 	return &Synthesizer{
-		llm:        llm,
-		stateStore: stateStore,
+		llm:      llm,
+		timezone: DefaultTimezone,
 	}
 }
 
-// Synthesize es el Cerebro 2: genera respuesta natural a partir de datos crudos
+func (s *Synthesizer) SetTimezone(tz string) {
+	if tz != "" {
+		s.timezone = tz
+	}
+}
+
+// Synthesize redacta la respuesta final al usuario.
 func (s *Synthesizer) Synthesize(
 	ctx context.Context,
-	sessionID, originalMessage, rawData string,
+	req models.SynthesisRequest,
 ) (*models.SynthesisResponse, error) {
 
-	// 1. Cargar estado (para saber qué intención/función se ejecutó)
-	dialogState, err := s.stateStore.Load(ctx, sessionID)
-	if err != nil {
-		return nil, fmt.Errorf("error al cargar estado: %w", err)
-	}
+	mode := s.detectMode(req)
+	now := s.currentTime()
+	systemPrompt := s.buildSystemPrompt(req, mode, now)
 
-	// 2. Construir el prompt del sistema
-	systemPrompt := s.buildSystemPrompt(dialogState, originalMessage, rawData)
-
-	// 3. Armar los mensajes para el LLM (sin tools, solo texto)
 	messages := []providers.Message{
 		{Role: "system", Content: systemPrompt},
-		{Role: "user", Content: originalMessage},
 	}
 
-	// 4. Llamar al LLM
 	llmResponse, err := s.llm.Chat(ctx, messages, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error al llamar al LLM en síntesis: %w", err)
@@ -54,76 +58,212 @@ func (s *Synthesizer) Synthesize(
 		return nil, fmt.Errorf("el LLM devolvió una respuesta vacía en síntesis")
 	}
 
-	// 5. Guardar la respuesta final en el historial
-	if dialogState != nil {
-		dialogState.AddMessage("assistant", llmResponse.Content)
-		dialogState.Status = "completado"
-		if err := s.stateStore.Save(ctx, dialogState); err != nil {
-			// No abortamos la respuesta por un fallo al guardar
-			log.Printf("Synthesizer: error al guardar estado: %v", err)
-		}
-	}
-
 	return &models.SynthesisResponse{
-		Response: llmResponse.Content,
+		Response:     strings.TrimSpace(llmResponse.Content),
+		HistoryEntry: buildHistoryEntry(mode, req, now),
+		Mode:         mode,
 	}, nil
 }
 
+func (s *Synthesizer) detectMode(req models.SynthesisRequest) string {
+	if req.Intent == "conversation" {
+		return "conversation"
+	}
+	if req.RawData != "" {
+		if looksLikeError(req.RawData) {
+			return "error"
+		}
+		return "respond"
+	}
+	return "clarify"
+}
+
+func looksLikeError(s string) bool {
+	lower := strings.ToLower(s)
+	keywords := []string{
+		"error", "timeout", "fallo", "failed", "exception",
+		"no encontrado", "not found", "unavailable",
+	}
+	for _, k := range keywords {
+		if strings.Contains(lower, k) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Synthesizer) currentTime() time.Time {
+	loc, err := time.LoadLocation(s.timezone)
+	if err != nil {
+		log.Printf("Synthesizer: timezone inválida %q, usando UTC", s.timezone)
+		return time.Now().UTC()
+	}
+	return time.Now().In(loc)
+}
+
+// buildHistoryEntry genera el resumen del turno para el historial del cliente.
+// Se hace en Go, sin LLM, para ser determinístico y barato.
+func buildHistoryEntry(mode string, req models.SynthesisRequest, now time.Time) *models.HistoryEntry {
+	var summary string
+	switch mode {
+	case "conversation":
+		summary = "respondí charla casual"
+	case "clarify":
+		missing := strings.Join(req.MissingSlots, ", ")
+		summary = fmt.Sprintf("pedí %s", missing)
+	case "respond":
+		summary = fmt.Sprintf("respondí sobre %s", req.Intent)
+	case "error":
+		summary = fmt.Sprintf("error al procesar %s", req.Intent)
+	default:
+		summary = "respondí"
+	}
+	return &models.HistoryEntry{
+		Role:      "assistant",
+		Summary:   summary,
+		Timestamp: now.Truncate(time.Second),
+	}
+}
+
 func (s *Synthesizer) buildSystemPrompt(
-	dialogState *state.DialogState,
-	originalMessage, rawData string,
+	req models.SynthesisRequest,
+	mode string,
+	now time.Time,
 ) string {
 
-	contextInfo := "(sin contexto previo)"
-	if dialogState != nil {
-		contextInfo = fmt.Sprintf(
-			"- Intención detectada: %s\n- Función ejecutada: %s\n- Parámetros usados: %+v",
-			dialogState.Intent,
-			dialogState.FunctionName,
-			dialogState.Parameters,
-		)
-	}
+	historyStr := s.formatHistory(req.History)
+	paramsStr := formatMap(req.Parameters)
 
-	return fmt.Sprintf(`Eres GAIA, el asistente conversacional de un sistema empresarial.
+	base := fmt.Sprintf(`Eres GAIA, el asistente de un sistema empresarial.
+Hablas SIEMPRE en español, con tono cercano pero profesional.
+NUNCA menciones que eres una IA, ni que "sintetizas", ni que "recibiste datos".
 
-## Tu tarea
-Recibes DATOS CRUDOS que el sistema del cliente (ERP, CRM, etc.) devolvió tras ejecutar una función, y debes transformarlos en una respuesta natural, amable y profesional para el usuario final.
-
-## Reglas estrictas
-- Responde SIEMPRE en español.
-- NO inventes datos. Usa únicamente lo que esté en los DATOS CRUDOS.
-- Si los datos están vacíos o son ambiguos, dilo con naturalidad (ej: "No encontré registros para ese período").
-- Sé conciso: 1 a 3 frases suelen ser suficientes.
-- Formatea números y fechas de forma legible:
-  - Montos: "150.000 Gs." (con separador de miles)
-  - Fechas: "15 de marzo de 2024" (no "2024-03-15")
-  - Porcentajes: "25%%"
-- NUNCA menciones que eres una IA, ni que "sintetizas", ni que "recibiste datos crudos". Responde como si tú mismo supieras el dato.
-- No saludes de nuevo si ya hay historial. Ve directo a la respuesta.
-- Si los datos crudos están en formato JSON, interprétalos y preséntalos de forma legible.
-
-## Ejemplos de transformación
-DATOS CRUDOS: "150000"
-RESPUESTA: "Hoy has facturado un total de 150.000 Gs."
-
-DATOS CRUDOS: {"cliente": "Juan Ramirez", "saldo": 500000}
-RESPUESTA: "El saldo actual de Juan Ramirez es de 500.000 Gs."
-
-DATOS CRUDOS: ""
-RESPUESTA: "No encontré información para tu consulta. ¿Podrías verificar los datos?"
+## Fecha y hora actual
+%s (zona: %s)
 
 ## Contexto del diálogo
-%s
+- Intent: %s
+- Función: %s
+- Parámetros ya recopilados: %s
 
-## DATOS CRUDOS del sistema del cliente
-%s
+## Mensaje original del usuario
+"%s"
 
-## PREGUNTA ORIGINAL del usuario
+## Historial reciente
 %s
-
-Genera ahora la respuesta final para el usuario.`,
-		contextInfo,
-		rawData,
-		originalMessage,
+`,
+		now.Format("2006-01-02 15:04"),
+		s.timezone,
+		req.Intent,
+		req.FunctionName,
+		paramsStr,
+		req.OriginalMessage,
+		historyStr,
 	)
+
+	switch mode {
+
+	case "conversation":
+		return base + `
+## Tu tarea (CHARLA CASUAL)
+El usuario hizo un saludo, agradecimiento o charla sin pedir una acción concreta.
+Responde breve (1-2 frases), amable y directo.
+NO inventes que tienes que ejecutar algo.
+Si ya hay historial con mensajes previos, NO saludes de nuevo.
+
+Genera la respuesta ahora.`
+
+	case "clarify":
+		return base + fmt.Sprintf(`
+## Tu tarea (PEDIR DATOS FALTANTES)
+El usuario quiere: %s.
+Ya dio: %s.
+Falta que proporcione: %s.
+
+Genera UNA sola pregunta natural en español pidiendo SOLO los datos que faltan.
+- No pidas lo que ya tiene.
+- No inventes datos.
+- Sé conciso (1-2 frases).
+- Tono amable, sin sonar robótico.
+- NO hagas preguntas adicionales ni agregues opciones.
+
+Genera la pregunta ahora.`,
+			req.Intent,
+			paramsStr,
+			strings.Join(req.MissingSlots, ", "),
+		)
+
+	case "respond":
+		return base + fmt.Sprintf(`
+## Tu tarea (RESPONDER CON DATOS DEL SISTEMA)
+El usuario pidió: %s.
+El sistema ejecutó la función y devolvió estos DATOS CRUDOS:
+
+%s
+
+Genera una respuesta natural en español presentando el resultado.
+Reglas:
+- Usa SOLO los datos proporcionados. NO inventes.
+- Formatea números y fechas (ej: "150.000 Gs.").
+- Sé conciso (1-3 frases).
+- No menciones "el sistema devolvió" ni cosas técnicas.
+- NO hagas preguntas adicionales salvo un cierre simple tipo "¿Necesitás algo más?".
+
+Genera la respuesta ahora.`,
+			req.Intent,
+			req.RawData,
+		)
+
+	case "error":
+		return base + `
+## Tu tarea (ERROR DEL SISTEMA)
+El sistema del cliente falló al intentar ejecutar la operación.
+El usuario NO debe enterarse del error técnico.
+
+Reglas:
+- Discúlpate breve y claramente (1-2 frases).
+- NO pidas datos nuevos.
+- NO hagas preguntas sobre la operación.
+- NO inventes una nueva pregunta ni ofrezcas opciones.
+- Sugiere intentar de nuevo más tarde.
+
+Ejemplo: "No pude completar la operación en este momento. ¿Podés intentar de nuevo en unos minutos?"
+
+Genera la respuesta ahora.`
+	}
+
+	return base
+}
+
+func (s *Synthesizer) formatHistory(history []models.HistoryEntry) string {
+	if len(history) == 0 {
+		return "(sin historial)"
+	}
+	start := 0
+	if len(history) > MaxHistoryForPrompt {
+		start = len(history) - MaxHistoryForPrompt
+	}
+	var sb strings.Builder
+	for _, entry := range history[start:] {
+		label := "Usuario"
+		content := entry.Content
+		if entry.Role == "assistant" {
+			label = "Asistente"
+			content = entry.Summary
+		}
+		sb.WriteString(fmt.Sprintf("[%s] %s: %s\n",
+			entry.Timestamp.Format("15:04"), label, content))
+	}
+	return sb.String()
+}
+
+func formatMap(m map[string]interface{}) string {
+	if len(m) == 0 {
+		return "(ninguno)"
+	}
+	parts := make([]string, 0, len(m))
+	for k, v := range m {
+		parts = append(parts, fmt.Sprintf("%s=%v", k, v))
+	}
+	return strings.Join(parts, ", ")
 }

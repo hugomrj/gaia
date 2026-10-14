@@ -1,51 +1,44 @@
+// internal/brain/brain.go
 package brain
 
 import (
 	"context"
-	"fmt"
 
 	"gaia/internal/brain/planner"
 	"gaia/internal/brain/synthesizer"
 	"gaia/internal/models"
+	"gaia/internal/normalizer"
 	"gaia/internal/providers"
-	"gaia/internal/state"
 )
 
 type Brain struct {
 	Planner     *planner.Planner
 	Synthesizer *synthesizer.Synthesizer
-	StateStore  state.StateStore
+	Normalizer  *normalizer.Normalizer
 }
 
-func NewBrain(llm providers.LLMProvider, stateStore state.StateStore) *Brain {
+func NewBrain(llm providers.LLMProvider) *Brain {
 	return &Brain{
-		Planner:     planner.NewPlanner(llm, stateStore),
-		Synthesizer: synthesizer.NewSynthesizer(llm, stateStore),
-		StateStore:  stateStore,
+		Planner:     planner.NewPlanner(llm),
+		Synthesizer: synthesizer.NewSynthesizer(llm),
+		Normalizer:  normalizer.New(),
 	}
 }
 
 func (b *Brain) ProcessMessage(ctx context.Context, req models.ChatRequest) (*models.AnalysisResponse, error) {
-	return b.Planner.Analyze(ctx, req.SessionID, req.Message, req.ClientContext)
+	return b.Planner.Analyze(ctx, req)
 }
 
-func (b *Brain) ProcessResult(ctx context.Context, result models.ExecutionResult) (*models.SynthesisResponse, error) {
-	state, err := b.StateStore.Load(ctx, result.SessionID)
-	if err != nil {
-		return nil, err
+func (b *Brain) ProcessResult(ctx context.Context, req models.SynthesisRequest) (*models.SynthesisResponse, error) {
+	return b.Synthesizer.Synthesize(ctx, req)
+}
+
+// Normalize aplica reglas determinísticas a los parámetros
+func (b *Brain) Normalize(params map[string]interface{}) *models.NormalizeResponse {
+	normalized, ok, notOk := b.Normalizer.Normalize(params)
+	return &models.NormalizeResponse{
+		Parameters:    normalized,
+		Normalized:    ok,
+		NotNormalized: notOk,
 	}
-	
-	var originalMessage string
-	for i := len(state.Conversation) - 1; i >= 0; i-- {
-		if state.Conversation[i].Role == "user" {
-			originalMessage = state.Conversation[i].Content
-			break
-		}
-	}
-	
-	if originalMessage == "" {
-		return nil, fmt.Errorf("no se encontró el mensaje original en el historial")
-	}
-	
-	return b.Synthesizer.Synthesize(ctx, result.SessionID, originalMessage, result.Data)
 }

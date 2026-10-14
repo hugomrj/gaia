@@ -1,3 +1,4 @@
+// internal/handlers/api.go
 package handlers
 
 import (
@@ -17,7 +18,6 @@ func NewAPIHandler(b *brain.Brain) *APIHandler {
 	return &APIHandler{brain: b}
 }
 
-// Analyze — Cerebro 1: POST /v1/analyze
 func (h *APIHandler) Analyze(c *gin.Context) {
 	var req models.ChatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -34,19 +34,31 @@ func (h *APIHandler) Analyze(c *gin.Context) {
 	c.JSON(http.StatusOK, analysis)
 }
 
-// Synthesize — Cerebro 2: POST /v1/synthesize
 func (h *APIHandler) Synthesize(c *gin.Context) {
-	var result models.ExecutionResult
-	if err := c.ShouldBindJSON(&result); err != nil {
+	var req models.SynthesisRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	synthesis, err := h.brain.ProcessResult(c.Request.Context(), result)
+	resp, err := h.brain.ProcessResult(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, synthesis)
+	c.JSON(http.StatusOK, resp)
+}
+
+
+// Normalize — Normalizer determinístico: POST /v1/normalize
+func (h *APIHandler) Normalize(c *gin.Context) {
+	var req models.NormalizeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp := h.brain.Normalize(req.Parameters)
+	c.JSON(http.StatusOK, resp)
 }

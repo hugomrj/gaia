@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Clínica · GAIA Playground</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, system-ui, sans-serif;
+    background: #0A0A0A; color: #F5F5F5;
+    height: 100vh; display: grid;
+    grid-template-columns: 1fr 380px;
+  }
+  .chat { display: flex; flex-direction: column; height: 100vh; }
+  .chat-header {
+    padding: 16px 24px; border-bottom: 1px solid #262626;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .chat-header h1 { font-size: 16px; font-weight: 600; }
+  .chat-header button {
+    background: transparent; border: 1px solid #262626; color: #F5F5F5;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+  }
+  .chat-header button:hover { background: #1A1A1A; }
+  .messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { max-width: 70%; padding: 12px 16px; border-radius: 12px; line-height: 1.5; font-size: 14px; white-space: pre-wrap; }
+  .msg.user { align-self: flex-end; background: #00E5A0; color: #0A0A0A; }
+  .msg.assistant { align-self: flex-start; background: #1A1A1A; }
+  .msg.system { align-self: center; background: transparent; color: #8A8A8A; font-size: 11px; text-align: center; }
+  .input-area { padding: 16px 24px; border-top: 1px solid #262626; display: flex; gap: 12px; }
+  .input-area input {
+    flex: 1; background: #141414; border: 1px solid #262626;
+    color: #F5F5F5; padding: 12px 16px; border-radius: 8px; outline: none;
+    font-size: 14px;
+  }
+  .input-area input:focus { border-color: #00E5A0; }
+  .input-area button {
+    background: #00E5A0; color: #0A0A0A; border: none;
+    padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;
+  }
+  .input-area button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .sidebar { background: #0F0F0F; border-left: 1px solid #262626; overflow-y: auto; padding: 20px; }
+  .sidebar h3 { font-size: 11px; text-transform: uppercase; color: #8A8A8A; margin: 20px 0 8px; letter-spacing: 0.05em; }
+  .sidebar h3:first-child { margin-top: 0; }
+  .sidebar pre {
+    background: #141414; border: 1px solid #262626; padding: 12px;
+    border-radius: 6px; font-family: ui-monospace, monospace; font-size: 11px;
+    overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+    max-height: 200px; overflow-y: auto;
+  }
+</style>
+</head>
+<body>
+
+<div class="chat">
+  <div class="chat-header">
+    <h1>🏥 Clínica San Juan · Asistente GAIA</h1>
+    <button onclick="resetSession()">Nueva conversación</button>
+  </div>
+  <div class="messages" id="messages"></div>
+  <div class="input-area">
+    <input id="input" placeholder="Escribí tu mensaje..." onkeypress="if(event.key==='Enter') sendMessage()">
+    <button id="sendBtn" onclick="sendMessage()">Enviar</button>
+  </div>
+</div>
+
+<div class="sidebar">
+  <h3>Estado</h3>
+  <pre id="debug-state">listo</pre>
+  <h3>Historial</h3>
+  <pre id="debug-history">[]</pre>
+  <h3>Collected Data</h3>
+  <pre id="debug-collected">null</pre>
+  <h3>Última cita</h3>
+  <pre id="debug-appointment">null</pre>
+  <h3>Último Analyze</h3>
+  <pre id="debug-analyze">—</pre>
+  <h3>Último Synthesize</h3>
+  <pre id="debug-synthesize">—</pre>
+</div>
+
+<script>
+// ---------- Estado del cliente ----------
+let sessionId = crypto.randomUUID();
+let history = [];
+let collectedData = null;
+let lastAppointment = null;
+
+// ===================================================================
+// CATÁLOGO DE FUNCIONES DEL CLIENTE
+// ===================================================================
+const CONTRACTS = {
+  "create_appointment":     { required: ["date", "doctor"] },
+  "cancel_appointment":     { required: ["appointment_id"] },
+  "reschedule_appointment": { required: ["appointment_id", "date"] },
+  "list_appointments":      { required: [] },
+  "get_appointment":        { required: ["appointment_id"] },
+  "list_appointments_by_patient": { required: ["patient"] },
+  "list_my_appointments":   { required: [] },
+
+  "list_doctors":           { required: [] },
+  "list_doctors_by_specialty": { required: ["specialty"] },
+  "get_doctor_schedule":    { required: ["doctor", "date"] },
+  "get_doctor_info":        { required: ["doctor"] },
+  "get_doctor_availability": { required: ["doctor"] },
+  "list_specialties":       { required: [] },
+
+  "search_patient":         { required: ["query"] },
+  "get_patient":            { required: ["patient"] },
+  "create_patient":         { required: ["name", "document"] },
+  "update_patient":         { required: ["patient"] },
+  "list_patients":          { required: [] },
+  "get_patient_history":    { required: ["patient"] },
+
+  "list_services":          { required: [] },
+  "list_prices":            { required: [] },
+  "get_service_price":      { required: ["service"] },
+  "list_lab_studies":       { required: [] },
+  "get_lab_result":         { required: ["study_id"] },
+  "request_lab_study":      { required: ["patient", "study"] },
+
+  "get_daily_billing":      { required: ["date"] },
+  "get_monthly_billing":    { required: ["period"] },
+  "get_patient_invoices":   { required: ["patient"] },
+  "get_invoice":            { required: ["invoice_id"] },
+  "list_unpaid_invoices":   { required: [] },
+
+  "get_client_balance":     { required: ["client"] },
+  "register_payment":       { required: ["invoice_id", "amount"] },
+  "get_payment_methods":    { required: [] },
+
+  "get_prescription":       { required: ["prescription_id"] },
+  "list_patient_prescriptions": { required: ["patient"] },
+  "send_prescription":      { required: ["patient", "medication"] },
+
+  "get_availability":       { required: ["date"] },
+  "get_availability_by_doctor": { required: ["doctor", "date"] },
+
+  "get_clinic_info":        { required: [] },
+  "get_clinic_location":    { required: [] },
+  "get_clinic_hours":       { required: [] },
+  "get_clinic_contact":     { required: [] },
+  "get_clinic_services":    { required: [] },
+  "get_clinic_insurance":   { required: [] },
+
+  "list_clients":           { required: [] },
+};
+
+// ===================================================================
+// ALIASES
+// ===================================================================
+const FUNCTION_ALIASES = {
+  // "Mi cita"
+  "query_appointment":            "list_my_appointments",
+  "get_my_appointment":           "list_my_appointments",
+  "get_my_appointments":          "list_my_appointments",
+  "query_my_appointment":         "list_my_appointments",
+  "when_is_my_appointment":       "list_my_appointments",
+  "get_appointment_info":         "list_my_appointments",
+  "get_appointment_details":      "list_my_appointments",
+  "check_my_appointment":         "list_my_appointments",
+  "get_next_appointment":         "list_my_appointments",
+  "get_my_next_appointment":      "list_my_appointments",
+  "query_next_appointment":       "list_my_appointments",
+  "get_appointment_date":         "list_my_appointments",
+  "get_my_appointment_date":      "list_my_appointments",
+  "query_my_appointment_date":    "list_my_appointments",
+  "check_appointment":            "list_my_appointments",
+  "get_scheduled_appointment":    "list_my_appointments",
+
+  // Precios
+  "get_cost":                     "list_prices",
+  "query_cost":                   "list_prices",
+  "get_costs":                    "list_prices",
+  "get_price":                    "list_prices",
+  "query_price":                  "list_prices",
+  "get_prices":                   "list_prices",
+  "query_prices":                 "list_prices",
+  "get_pricing":                  "list_prices",
+  "query_pricing":                "list_prices",
+  "get_fees":                     "list_prices",
+  "query_fees":                   "list_prices",
+  "get_rates":                    "list_prices",
+  "get_tariff":                   "list_prices",
+  "get_tarifas":                  "list_prices",
+  "query_tarifas":                "list_prices",
+  "get_costos":                   "list_prices",
+  "query_costos":                 "list_prices",
+  "get_precios":                  "list_prices",
+  "query_precios":                "list_prices",
+
+  // Clínica
+  "get_location":                 "get_clinic_location",
+  "query_location":               "get_clinic_location",
+  "get_address":                  "get_clinic_location",
+  "query_address":                "get_clinic_location",
+  "where_is_clinic":              "get_clinic_location",
+  "get_hours":                    "get_clinic_hours",
+  "query_hours":                  "get_clinic_hours",
+  "get_opening_hours":            "get_clinic_hours",
+  "get_contact":                  "get_clinic_contact",
+  "query_contact":                "get_clinic_contact",
+  "get_phone":                    "get_clinic_contact",
+  "get_clinic_phone":             "get_clinic_contact",
+  "get_info":                     "get_clinic_info",
+  "query_info":                   "get_clinic_info",
+  "get_clinic_details":           "get_clinic_info",
+  "get_insurance":                "get_clinic_insurance",
+  "query_insurance":              "get_clinic_insurance",
+  "list_insurance":               "get_clinic_insurance",
+
+  // Disponibilidad
+  "get_availability_date":        "get_doctor_availability",
+  "get_availability_doctor":      "get_doctor_availability",
+  "query_availability":           "get_doctor_availability",
+  "get_doctor_availability_date": "get_doctor_availability",
+  "check_doctor_availability":    "get_doctor_availability",
+
+  // Existencia de doctor
+  "check_doctor":                 "get_doctor_info",
+  "query_doctor_existence":       "get_doctor_info",
+  "check_doctor_exists":          "get_doctor_info",
+  "doctor_exists":                "get_doctor_info",
+
+  // Listas
+  "get_doctors":                  "list_doctors",
+  "query_doctors":                "list_doctors",
+  "get_specialties":              "list_specialties",
+  "query_specialties":            "list_specialties",
+  "get_services":                 "list_services",
+  "query_services":               "list_services",
+
+  // Agendamiento
+  "schedule_appointment":         "create_appointment",
+  "book_appointment":             "create_appointment",
+  "make_appointment":             "create_appointment",
+};
+
+// ===================================================================
+// OVERRIDE: detección por palabras clave en el mensaje del usuario.
+// Si el mensaje matchea un patrón, se fuerza la función, sin importar
+// lo que el Planner haya inventado.
+// ===================================================================
+const KEYWORD_OVERRIDES = [
+  // Mi cita
+  { patterns: ["mi cita", "mi turno", "mis citas", "mis turnos",
+               "mi proxima cita", "mi próxima cita", "mi siguiente cita",
+               "cuando es mi", "cuándo es mi", "cuando tengo", "cuándo tengo",
+               "que dia es mi", "qué día es mi", "que dia tengo", "qué día tengo",
+               "cuando me toca", "cuándo me toca"],
+    function: "list_my_appointments" },
+
+  // Precios
+  { patterns: ["cuanto cuesta", "cuánto cuesta", "cuanto sale", "cuánto sale",
+               "cuanto vale", "cuánto vale", "cuanto es", "cuánto es",
+               "precio", "precios", "tarifa", "tarifas", "costo", "costos",
+               "cuanto cobran", "cuánto cobran"],
+    function: "list_prices" },
+
+  // Ubicación
+  { patterns: ["donde queda", "dónde queda", "donde esta", "dónde está",
+               "donde se encuentra", "dónde se encuentra", "ubicacion", "ubicación",
+               "direccion", "dirección"],
+    function: "get_clinic_location" },
+
+  // Horarios
+  { patterns: ["horario", "horarios", "a que hora abren", "a qué hora abren",
+               "a que hora cierran", "a qué hora cierran", "cuando abren", "cuándo abren"],
+    function: "get_clinic_hours" },
+
+  // Contacto
+  { patterns: ["telefono", "teléfono", "numero de telefono", "número de teléfono",
+               "whatsapp", "email", "correo", "contacto"],
+    function: "get_clinic_contact" },
+
+  // Obras sociales
+  { patterns: ["obra social", "obras sociales", "aceptan ips", "trabajan con ips",
+               "convenio", "convenios", "cobertura", "seguro medico", "seguro médico"],
+    function: "get_clinic_insurance" },
+
+  // Doctores
+  { patterns: ["que doctores", "qué doctores", "que medicos", "qué médicos",
+               "lista de doctores", "lista de medicos", "lista de médicos"],
+    function: "list_doctors" },
+
+  // Especialidades
+  { patterns: ["que especialidades", "qué especialidades", "especialidades"],
+    function: "list_specialties" },
+
+  // Servicios
+  { patterns: ["que servicios", "qué servicios", "servicios que ofrecen"],
+    function: "list_services" },
+
+  // Info general
+  { patterns: ["informacion de la clinica", "información de la clínica",
+               "sobre la clinica", "sobre la clínica"],
+    function: "get_clinic_info" },
+];
+
+function detectOverride(message) {
+  const m = message.toLowerCase();
+  for (const override of KEYWORD_OVERRIDES) {
+    for (const pattern of override.patterns) {
+      if (m.includes(pattern)) {
+        return override.function;
+      }
+    }
+  }
+  return null;
+}
+
+// ===================================================================
+// PLACEHOLDERS
+// ===================================================================
+const PLACEHOLDERS = new Set([
+  "doctor", "médico", "medico", "paciente", "cliente", "usuario",
+  "value", "valor", "dato", "unknown", "desconocido",
+  "n/a", "na", "null", "undefined", "none", "ninguno",
+  "specialty", "especialidad", "service", "servicio",
+  "date", "fecha", "time", "hora", "name", "nombre",
+  "location", "ubicacion", "ubicación", "lugar",
+  "cost", "costo", "price", "precio",
+]);
+
+function isPlaceholder(value) {
+  if (typeof value !== "string") return false;
+  return PLACEHOLDERS.has(value.trim().toLowerCase());
+}
+
+function resolveFunctionName(name) {
+  if (!name) return name;
+  if (name in CONTRACTS) return name;
+  if (name in FUNCTION_ALIASES) return FUNCTION_ALIASES[name];
+  return name;
+}
+
+// ===================================================================
+// ERP SIMULADO
+// ===================================================================
+function executeFunction(functionName, parameters) {
+  console.log("[execute]", functionName, parameters);
+
+  switch (functionName) {
+    case "create_appointment": {
+      lastAppointment = {
+        id: "APT-" + Math.floor(1000 + Math.random() * 9000),
+        date: parameters.date,
+        doctor: parameters.doctor,
+        status: "confirmada",
+        createdAt: new Date().toISOString()
+      };
+      return `OK. Cita agendada para ${parameters.date} con el doctor ${parameters.doctor}. ID: ${lastAppointment.id}.`;
+    }
+    case "cancel_appointment":
+      lastAppointment = null;
+      return `OK. La cita ${parameters.appointment_id} fue cancelada.`;
+    case "reschedule_appointment":
+      if (lastAppointment) lastAppointment.date = parameters.date;
+      return `OK. La cita ${parameters.appointment_id} fue reprogramada para ${parameters.date}.`;
+    case "list_appointments":
+      return "Próximas citas: Dr. Ramirez lunes 8:00, Dra. Lopez martes 10:00, Dr. Fernandez miércoles 15:00.";
+    case "get_appointment":
+      return `Cita ${parameters.appointment_id}: Dr. Ramirez, lunes 8:00, Consultorio 3.`;
+    case "list_appointments_by_patient":
+      return `El paciente ${parameters.patient} tiene 2 citas próximas: 20/10 y 27/10.`;
+    case "list_my_appointments": {
+      if (lastAppointment) {
+        return `Tu próxima cita es el ${lastAppointment.date} con el doctor ${lastAppointment.doctor}. ID: ${lastAppointment.id}. Estado: ${lastAppointment.status}.`;
+      }
+      return "No tenés citas agendadas actualmente. ¿Querés agendar una?";
+    }
+    case "list_doctors":
+      return "Dr. Ramirez (Cardiología), Dra. Lopez (Pediatría), Dr. Fernandez (Clínica Médica), Dra. Gimenez (Dermatología).";
+    case "list_doctors_by_specialty":
+      return `Especialistas en ${parameters.specialty}: Dr. Ramirez, Dra. Gimenez.`;
+    case "get_doctor_schedule":
+      return `El Dr. ${parameters.doctor} tiene disponibilidad los lunes y miércoles de 8:00 a 12:00.`;
+    case "get_doctor_info":
+      return `Sí, el Dr. ${parameters.doctor} existe en el sistema. Es especialista con 15 años de experiencia, atiende en el consultorio 3.`;
+    case "get_doctor_availability":
+      return `El Dr. ${parameters.doctor} tiene disponibilidad: lunes 8:00-12:00, miércoles 8:00-12:00, viernes 14:00-18:00.`;
+    case "list_specialties":
+      return "Cardiología, Pediatría, Clínica Médica, Dermatología, Traumatología, Ginecología.";
+    case "search_patient":
+      return `Encontré 1 paciente que coincide con "${parameters.query}": Juan Ramirez, CI 1.234.567.`;
+    case "get_patient":
+      return `Paciente ${parameters.patient}: Juan Ramirez, 45 años, obra social IPS.`;
+    case "create_patient":
+      return `OK. Paciente ${parameters.name} creado con documento ${parameters.document}.`;
+    case "update_patient":
+      return `OK. Datos del paciente ${parameters.patient} actualizados.`;
+    case "list_patients":
+      return "Total de pacientes activos: 1.240.";
+    case "get_patient_history":
+      return `El paciente ${parameters.patient} tiene 5 consultas previas. Última: 12/09/2026 (control).`;
+    case "list_services":
+      return "Servicios: Consultas médicas, Estudios de laboratorio, Vacunación, Ecografías, Rayos X, Urgencias.";
+    case "list_prices":
+      return "Precios generales: Consulta médica 50.000 Gs., Estudios de laboratorio 80.000 Gs., Vacunación 30.000 Gs., Ecografía 120.000 Gs., Rayos X 100.000 Gs., Urgencia 70.000 Gs.";
+    case "get_service_price":
+      return `El precio de "${parameters.service}" es 80.000 Gs.`;
+    case "list_lab_studies":
+      return "Estudios disponibles: Hemograma, Glucemia, Perfil lipídico, Orina completo, Radiografía de tórax.";
+    case "get_lab_result":
+      return `Estudio ${parameters.study_id}: Hemograma dentro de parámetros normales (12/10/2026).`;
+    case "request_lab_study":
+      return `OK. Solicitado estudio "${parameters.study}" para el paciente ${parameters.patient}.`;
+    case "get_daily_billing":
+      return "150000";
+    case "get_monthly_billing":
+      return "4500000";
+    case "get_patient_invoices":
+      return `El paciente ${parameters.patient} tiene 3 facturas: 50.000, 80.000 y 120.000 Gs.`;
+    case "get_invoice":
+      return `Factura ${parameters.invoice_id}: 50.000 Gs., pagada el 12/10/2026.`;
+    case "list_unpaid_invoices":
+      return "Hay 12 facturas impagas por un total de 850.000 Gs.";
+    case "get_client_balance":
+      return "500000";
+    case "register_payment":
+      return `OK. Pago registrado: ${parameters.amount} Gs. sobre la factura ${parameters.invoice_id}.`;
+    case "get_payment_methods":
+      return "Métodos aceptados: efectivo, transferencia, tarjeta de crédito, tarjeta de débito.";
+    case "get_prescription":
+      return `Receta ${parameters.prescription_id}: Ibuprofeno 400mg cada 8 horas por 3 días.`;
+    case "list_patient_prescriptions":
+      return `El paciente ${parameters.patient} tiene 2 recetas vigentes.`;
+    case "send_prescription":
+      return `OK. Receta de ${parameters.medication} enviada al paciente ${parameters.patient}.`;
+    case "get_availability":
+      return `Disponibilidad para ${parameters.date}: 8:00, 9:30, 11:00, 15:00, 16:30.`;
+    case "get_availability_by_doctor":
+      return `El Dr. ${parameters.doctor} tiene libre: 8:00, 9:30 y 15:00 el ${parameters.date}.`;
+    case "get_clinic_info":
+      return "Clínica San Juan — fundada en 1995, con más de 25 especialidades médicas. Atendemos de lunes a sábado de 7:00 a 20:00.";
+    case "get_clinic_location":
+      return "La Clínica San Juan está ubicada en Av. Mcal. López 1234, casi esquina Brasil, Asunción.";
+    case "get_clinic_hours":
+      return "Horarios de atención: Lunes a viernes de 7:00 a 20:00, sábados de 8:00 a 13:00. Urgencias 24 horas.";
+    case "get_clinic_contact":
+      return "Contacto: Teléfono (021) 234-5678, WhatsApp +595 981 123-456, email contacto@clinicasanjuan.com.py.";
+    case "get_clinic_services":
+      return "Ofrecemos consultas médicas, estudios de laboratorio, ecografías, rayos X, vacunación, y atención de urgencias.";
+    case "get_clinic_insurance":
+      return "Trabajamos con: IPS, Sanitas, Asismed, La Consolidada, y también atención particular.";
+    case "list_clients":
+      return '[{"name":"Juan Ramirez"},{"name":"Maria Lopez"},{"name":"Carlos Gimenez"}]';
+    default:
+      return `ERROR: función '${functionName}' no encontrada`;
+  }
+}
+
+// ---------- Utilidades ----------
+function now() { return new Date().toISOString(); }
+
+function renderMessages() {
+  const el = document.getElementById("messages");
+  el.innerHTML = "";
+  for (const m of history) {
+    const div = document.createElement("div");
+    div.className = "msg " + m.role;
+    if (m.role === "assistant") {
+      div.textContent = m.content || m.summary || "";
+    } else {
+      div.textContent = m.content;
+    }
+    el.appendChild(div);
+  }
+  el.scrollTop = el.scrollHeight;
+  updateDebug();
+}
+
+function updateDebug() {
+  document.getElementById("debug-history").textContent   = JSON.stringify(history, null, 2);
+  document.getElementById("debug-collected").textContent = JSON.stringify(collectedData, null, 2);
+  document.getElementById("debug-appointment").textContent = JSON.stringify(lastAppointment, null, 2);
+}
+
+function setState(s) {
+  document.getElementById("debug-state").textContent = s;
+}
+
+function resetSession() {
+  sessionId = crypto.randomUUID();
+  history = [];
+  collectedData = null;
+  lastAppointment = null;
+  document.getElementById("debug-analyze").textContent    = "—";
+  document.getElementById("debug-synthesize").textContent = "—";
+  renderMessages();
+  setState("listo");
+}
+
+// ---------- Flujo principal ----------
+async function sendMessage() {
+  const input = document.getElementById("input");
+  const btn = document.getElementById("sendBtn");
+  const message = input.value.trim();
+  if (!message) return;
+
+  input.value = "";
+  input.disabled = true;
+  btn.disabled = true;
+
+  history.push({ role: "user", content: message, timestamp: now() });
+  renderMessages();
+
+  try {
+    setState("analizando...");
+    const analysis = await postJSON("/v1/analyze", {
+      session_id: sessionId,
+      message,
+      collected_data: collectedData,
+      history: history.map(toLLMEntry),
+      available_functions: Object.keys(CONTRACTS)
+    });
+    document.getElementById("debug-analyze").textContent = JSON.stringify(analysis, null, 2);
+
+    // 1. OVERRIDE por palabras clave (máxima prioridad)
+    const override = detectOverride(message);
+    let resolvedFunction;
+    if (override) {
+      resolvedFunction = override;
+      console.log("[override]", "forzado a:", resolvedFunction, "(Planner dijo:", analysis.function_name, ")");
+    } else {
+      resolvedFunction = resolveFunctionName(analysis.function_name);
+      if (resolvedFunction !== analysis.function_name) {
+        console.log("[alias]", analysis.function_name, "→", resolvedFunction);
+      }
+    }
+
+    const mergedParams = {
+      ...(collectedData?.parameters || {}),
+      ...(analysis.parameters || {})
+    };
+
+    for (const key of Object.keys(mergedParams)) {
+      if (isPlaceholder(mergedParams[key])) {
+        console.log("[filter] descartado placeholder:", key, "=", mergedParams[key]);
+        delete mergedParams[key];
+      }
+    }
+
+    // Si hay override, forzamos que NO sea conversación
+    const isConversation = !override && (
+      analysis.intent.startsWith("conversation") || !resolvedFunction
+    );
+
+    const contract = CONTRACTS[resolvedFunction] || { required: [] };
+    const missing = contract.required.filter(k => !(k in mergedParams));
+
+    if (!isConversation) {
+      collectedData = {
+        intent: override ? resolvedFunction : analysis.intent,
+        function_name: resolvedFunction,
+        parameters: mergedParams,
+        missing_slots: missing,
+        status: missing.length === 0 ? "ready_to_execute" : "waiting_for_data"
+      };
+    } else {
+      collectedData = null;
+    }
+
+    let rawData = "";
+    let errorCode = "";
+    const isKnown = resolvedFunction in CONTRACTS;
+
+    if (!isConversation
+        && missing.length === 0
+        && resolvedFunction
+        && isKnown) {
+      setState("ejecutando función...");
+      rawData = executeFunction(resolvedFunction, mergedParams);
+      if (rawData.startsWith("ERROR:")) {
+        errorCode = "execution_failed";
+      }
+    } else if (!isConversation
+               && resolvedFunction
+               && !isKnown) {
+      setState("función desconocida: " + resolvedFunction);
+      rawData = `ERROR: el sistema no tiene registrada la función '${resolvedFunction}'`;
+      errorCode = "function_not_found";
+    }
+
+    setState("sintetizando...");
+    const synth = await postJSON("/v1/synthesize", {
+      session_id: sessionId,
+      original_message: message,
+      intent: override ? resolvedFunction : analysis.intent,
+      function_name: resolvedFunction,
+      parameters: mergedParams,
+      missing_slots: missing,
+      raw_data: rawData,
+      error_code: errorCode,
+      history: history.map(toLLMEntry)
+    });
+    document.getElementById("debug-synthesize").textContent = JSON.stringify(synth, null, 2);
+
+    history.push({
+      role: "assistant",
+      content: synth.response,
+      summary: synth.history_entry?.summary || "",
+      timestamp: synth.history_entry?.timestamp || now()
+    });
+    if (history.length > 6) history = history.slice(-6);
+    renderMessages();
+
+    if (synth.mode === "respond" || synth.mode === "error" || synth.mode === "conversation") {
+      collectedData = null;
+    }
+
+    setState("listo (" + synth.mode + ")");
+  } catch (err) {
+    history.push({ role: "system", content: "❌ Error: " + err.message, timestamp: now() });
+    renderMessages();
+    setState("error: " + err.message);
+  } finally {
+    input.disabled = false;
+    btn.disabled = false;
+    input.focus();
+  }
+}
+
+function toLLMEntry(m) {
+  if (m.role === "assistant") {
+    return { role: "assistant", summary: m.summary || m.content, timestamp: m.timestamp };
+  }
+  return { role: m.role, content: m.content, timestamp: m.timestamp };
+}
+
+async function postJSON(url, body) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+// Init
+renderMessages();
+document.getElementById("input").focus();
+</script>
+
+</body>
+</html>

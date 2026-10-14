@@ -18,6 +18,7 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain) *gin.Eng
 	// 1. Configuración de vistas y estáticos (Admin Panel)
 	router.LoadHTMLGlob("internal/admin/templates/*.html")
 	router.Static("/admin/static", "internal/admin/static")
+	router.Static("/examples", "examples")
 
 	// 2. Inicializar Handlers
 	apiHandler := handlers.NewAPIHandler(gaiaBrain)
@@ -25,7 +26,7 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain) *gin.Eng
 
 	// 3. Rutas Públicas y de Salud
 	router.GET("/health", healthHandler.Health)
-	
+
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"name":    "GAIA",
@@ -39,9 +40,12 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain) *gin.Eng
 	{
 		// Cerebro 1: Analiza la intención y devuelve function_name + parámetros
 		v1.POST("/analyze", apiHandler.Analyze)
-		
+
 		// Cerebro 2: Sintetiza la respuesta final con los datos del cliente
 		v1.POST("/synthesize", apiHandler.Synthesize)
+
+		// Normalizer: convierte valores crudos a formato estándar
+		v1.POST("/normalize", apiHandler.Normalize)
 	}
 
 	// 5. Panel de Administración (Rutas públicas de auth)
