@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAIA Client · ERP Empresarial</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0A0A0A; --bg-side:#0F0F0F; --bg-card:#141414; --bg-code:#0D0D0D;
+    --border:#262626; --text:#F5F5F5; --muted:#8A8A8A;
+    --accent:#00E5A0; --accent-dim:#00B37A; --warn:#FFB347; --danger:#FF4D4D;
+    --mono:ui-monospace,'JetBrains Mono',Consolas,monospace;
+    --sans:-apple-system,system-ui,'Segoe UI',sans-serif;
+  }
+  html,body{height:100%}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.5;overflow:hidden}
+
+  .app{display:flex;height:100dvh}
+
+  /* ---------- PANEL IZQUIERDO ---------- */
+  .panel{flex:0 0 330px;background:var(--bg-side);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+  .panel-head{display:flex;align-items:center;gap:10px;padding:16px;border-bottom:1px solid var(--border)}
+  .panel-head strong{display:block;font-size:15px}
+  .panel-head span{font-size:11px;color:var(--muted)}
+  .logo{width:34px;height:34px;min-width:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-dim));display:grid;place-items:center;color:#03130D;font-weight:800;font-size:16px}
+  .p-section{padding:16px;border-bottom:1px solid var(--border)}
+  .p-section h4{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px}
+  .lbl{display:block;font-size:11px;color:var(--muted);margin-bottom:5px}
+  .row{display:flex;gap:8px}
+  .row input{flex:1;min-width:0}
+  input[type=text]{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;font-family:var(--mono)}
+  input[type=text]:focus{outline:none;border-color:var(--accent)}
+  .conn{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--muted)}
+  .dot{width:8px;height:8px;min-width:8px;border-radius:50%;background:var(--muted)}
+  .dot.ok{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+  .dot.fail{background:var(--danger)}
+  .dot.pending{background:var(--warn)}
+  .kv{font-size:12px;margin-bottom:10px}
+  .kv div{display:flex;justify-content:space-between;padding:3px 0}
+  .kv span{color:var(--muted)}
+  .kv b{font-family:var(--mono);font-weight:600;font-size:11.5px}
+  .btn{background:var(--bg-card);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:12.5px;cursor:pointer;font-family:var(--sans)}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#03130D;border:none;font-weight:700}
+  .btn.primary:hover{filter:brightness(1.1);color:#03130D}
+  .btn.tiny{padding:5px 9px;font-size:11px}
+  .btn.wide{width:100%}
+  .mini-pre{background:var(--bg-code);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:10.5px;color:#C8C8C8;overflow:auto;max-height:180px;white-space:pre-wrap;word-break:break-word}
+  .empty{font-size:12px;color:var(--muted)}
+  code{font-family:var(--mono);font-size:.9em;background:var(--bg-card);padding:1px 5px;border-radius:4px;color:var(--accent)}
+  .badge{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;margin:2px 4px 2px 0}
+  .badge.required{background:#7F1D1D;color:#FECACA}
+  .badge.optional{background:#1E3A8A;color:#BFDBFE}
+  details.fn{border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--bg-card)}
+  details.fn summary{padding:8px 10px;cursor:pointer;font-size:12px;list-style:none}
+  details.fn summary::before{content:'▸ ';color:var(--muted)}
+  details.fn[open] summary::before{content:'▾ '}
+  details.fn p{font-size:11.5px;color:#C8C8C8;padding:0 10px 8px}
+  .unknown-item{background:rgba(255,179,71,.06);border:1px solid rgba(255,179,71,.3);border-radius:8px;padding:9px 10px;margin-bottom:8px;font-size:12px}
+  .unknown-item small{display:block;color:var(--muted);margin:4px 0}
+  .panel-note{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.45}
+  .panel-foot{padding:12px 16px;font-size:10.5px;color:var(--muted)}
+
+  /* ---------- CHAT ---------- */
+  .chat{flex:1 1 0;min-width:0;display:flex;flex-direction:column;height:100dvh}
+  .chat-header{display:flex;align-items:center;gap:11px;padding:12px 18px;border-bottom:1px solid var(--border);background:rgba(10,10,10,.85);backdrop-filter:blur(8px)}
+  .chat-header .titles{flex:1;min-width:0}
+  .chat-header strong{font-size:14.5px;display:block}
+  .chat-header .titles span{font-size:11px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .icon-btn{position:relative;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:6px 9px;border-radius:8px;font-family:var(--mono)}
+  .icon-btn:hover{color:var(--text);background:var(--bg-card)}
+  #btnInsp{font-size:14px;font-weight:700}
+  #btnInsp.active{color:var(--accent);background:var(--bg-card)}
+  #btnInsp.has-new{color:var(--accent)}
+  #btnInsp .cnt{position:absolute;top:0;right:0;font-family:var(--mono);font-size:8.5px;background:var(--accent);color:#03130D;border-radius:8px;padding:0 4px;font-weight:700;display:none}
+  #btnInsp .cnt.show{display:block}
+  .menu{display:none}
+
+  .messages{flex:1;overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:78%;padding:11px 15px;border-radius:14px;font-size:14.5px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere}
+  .msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--accent-dim),var(--accent));color:#03130D;font-weight:500;border-bottom-right-radius:4px}
+  .msg.assistant{align-self:flex-start;background:var(--bg-card);border:1px solid var(--border);border-bottom-left-radius:4px}
+  .msg.assistant strong{color:var(--accent)}
+  .msg .meta{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:7px;letter-spacing:.03em;white-space:normal}
+  .msg.system{align-self:stretch;max-width:100%;border-radius:10px;font-size:13.5px}
+  .msg.system.error{border:1px solid rgba(255,77,77,.35);background:rgba(255,77,77,.07);color:#FFC9C9}
+  .msg.system.info{border:1px solid var(--border);background:var(--bg-card);color:#D4D4D4}
+  .typing{display:flex;gap:5px;padding:15px 17px;align-self:flex-start;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;border-bottom-left-radius:4px}
+  .typing span{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:blink 1.2s infinite}
+  .typing span:nth-child(2){animation-delay:.2s}
+  .typing span:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,80%,100%{opacity:.15}40%{opacity:1}}
+
+  .chips{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;border-top:1px solid var(--border);scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex-shrink:0;background:var(--bg-card);border:1px solid var(--border);color:#D4D4D4;font-size:12px;padding:7px 13px;border-radius:999px;cursor:pointer}
+  .chip:hover{border-color:var(--accent);color:var(--accent)}
+
+  .composer{display:flex;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border)}
+  .composer input{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 15px;color:var(--text);font-size:15px;font-family:var(--sans)}
+  .composer input:focus{outline:none;border-color:var(--accent)}
+  .composer input:disabled{opacity:.5}
+  .send{width:46px;height:46px;min-width:46px;border:none;border-radius:12px;background:var(--accent);color:#03130D;cursor:pointer;display:grid;place-items:center}
+  .send:hover{filter:brightness(1.1)}
+  .send:disabled{opacity:.4;cursor:not-allowed}
+
+  /* ---------- INSPECTOR JSON (derecha) ---------- */
+  .inspector{flex:0 0 auto;width:0;overflow:hidden;background:var(--bg-side);border-left:1px solid transparent;transition:width .22s ease}
+  .inspector.open{width:410px;border-left-color:var(--border)}
+  .inspector-inner{width:410px;height:100%;display:flex;flex-direction:column}
+  .inspector-head{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border)}
+  .inspector-head strong{font-size:13px;flex:1}
+  .insp-hint{font-size:9.5px;color:var(--muted);white-space:nowrap}
+  .insp-count{font-family:var(--mono);font-size:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:1px 8px;color:var(--muted)}
+  .inspector-list{flex:1;overflow-y:auto;padding:12px}
+  .insp-entry{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--bg-card);overflow:hidden}
+  .insp-entry summary{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;font-family:var(--mono);font-size:11px;list-style:none}
+  .insp-entry summary::-webkit-details-marker{display:none}
+  .insp-entry .arrow::before{content:'▸';color:var(--muted)}
+  .insp-entry[open] .arrow::before{content:'▾'}
+  .insp-num{color:var(--muted);font-size:9.5px;flex-shrink:0;min-width:30px}
+  .insp-path{flex:1;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .insp-time{color:var(--muted);font-size:9.5px;white-space:nowrap}
+  .insp-body{padding:2px 10px 10px;border-top:1px solid var(--border)}
+  .io-label{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:8px 0 4px}
+  .kind-tag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;flex-shrink:0}
+  .kind-analyze .kind-tag{background:#1E3A8A;color:#BFDBFE}
+  .kind-normalize .kind-tag{background:#5B21B6;color:#DDD6FE}
+  .kind-synthesize .kind-tag{background:#166534;color:#BBF7D0}
+  .kind-health .kind-tag{background:#374151;color:#D1D5DB}
+  .kind-exec .kind-tag{background:#7C2D12;color:#FED7AA}
+  .kind-db .kind-tag{background:#312E81;color:#C7D2FE}
+  .kind-local .kind-tag{background:#334155;color:#E2E8F0}
+  .kind-turn .kind-tag{background:#0E7490;color:#CFFAFE}
+  .kind-error{border-color:rgba(255,77,77,.4)}
+  .kind-error .kind-tag{background:#7F1D1D;color:#FECACA}
+  .kind-error .insp-path{color:#FCA5A5}
+
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s;z-index:55}
+  .backdrop.show{opacity:1;pointer-events:auto}
+
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+  ::-webkit-scrollbar-thumb:hover{background:#404040}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:1100px){
+    .inspector{position:fixed;top:0;right:0;bottom:0;height:100dvh;width:min(92vw,420px)!important;transform:translateX(105%);transition:transform .25s ease;z-index:60;border-left:1px solid var(--border);box-shadow:-10px 0 30px rgba(0,0,0,.5)}
+    .inspector.open{transform:none}
+    .inspector-inner{width:100%}
+  }
+  @media (max-width:900px){
+    .menu{display:grid}
+    .panel{position:fixed;top:0;left:0;bottom:0;width:min(340px,88vw);flex:none;transform:translateX(-105%);transition:transform .25s ease;z-index:60;box-shadow:8px 0 30px rgba(0,0,0,.5)}
+    .panel.open{transform:none}
+    .msg{max-width:88%}
+    .messages{padding:16px 12px}
+    .chat-header{padding:10px 12px}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ================= PANEL IZQUIERDO ================= -->
+  <aside class="panel" id="panel">
+    <div class="panel-head">
+      <div class="logo">G</div>
+      <div style="flex:1"><strong>GAIA Client</strong><span>ERP · Distribuidora Andina S.A.</span></div>
+      <button class="icon-btn" id="closePanel" aria-label="Cerrar panel">✕</button>
+    </div>
+
+    <section class="p-section">
+      <h4>Conexión</h4>
+      <label class="lbl" for="baseUrl">Base URL de GAIA</label>
+      <div class="row">
+        <input id="baseUrl" type="text" spellcheck="false">
+        <button class="btn" id="btnHealth">Probar</button>
+      </div>
+      <div class="conn"><span class="dot pending" id="dot"></span><span id="connText">verificando…</span></div>
+    </section>
+
+    <section class="p-section">
+      <h4>Sesión</h4>
+      <div class="kv" id="sessionInfo"></div>
+      <button class="btn primary wide" id="btnNew">＋ Nueva conversación</button>
+      <h4 style="margin-top:16px">Estado del turno (collected_data)</h4>
+      <pre class="mini-pre" id="stateView">null</pre>
+    </section>
+
+    <section class="p-section">
+      <h4>⚠️ Funciones no implementadas (registro interno)</h4>
+      <p class="panel-note">El chat solo dice «no está implementada». Acá queda registrado lo que el Planner inventó, para que decidas si la agregás a <code>CATALOG</code>.</p>
+      <div id="unknownList"><p class="empty">Ninguna por ahora ✔</p></div>
+    </section>
+
+    <section class="p-section">
+      <h4>Catálogo del cliente (<span id="catalogCount">0</span> funciones)</h4>
+      <div id="catalogList"></div>
+    </section>
+
+    <div class="panel-foot">GAIA piensa · el cliente actúa · v0.1.0</div>
+  </aside>
+
+  <div class="backdrop" id="backdrop"></div>
+
+  <!-- ================= CHAT ================= -->
+  <main class="chat">
+    <header class="chat-header">
+      <button class="icon-btn menu" id="btnMenu" aria-label="Abrir panel">☰</button>
+      <div class="logo">G</div>
+      <div class="titles">
+        <strong>Asistente Gerencial</strong>
+        <span id="connText2">GAIA · orquestador conversacional</span>
+      </div>
+      <span class="dot pending" id="dot2"></span>
+      <button class="icon-btn" id="btnInsp" title="Inspector JSON (entradas / salidas)">{&nbsp;}<span class="cnt" id="btnInspCnt"></span></button>
+    </header>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="chips" id="chips"></div>
+
+    <form class="composer" id="composer" autocomplete="off">
+      <input id="input" type="text" placeholder="Escribí tu consulta… (ej: KPIs del mes)" aria-label="Mensaje">
+      <button class="send" type="submit" aria-label="Enviar">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
+      </button>
+    </form>
+  </main>
+
+  <!-- ================= INSPECTOR JSON (derecha, ocultable) ================= -->
+  <aside class="inspector" id="inspector">
+    <div class="inspector-inner">
+      <div class="inspector-head">
+        <strong>Inspector JSON</strong>
+        <span class="insp-hint">nuevos ↑</span>
+        <span class="insp-count" id="inspCount">0</span>
+        <button class="btn tiny" id="btnClearInsp">Limpiar</button>
+        <button class="icon-btn" id="btnCloseInsp" aria-label="Cerrar inspector">✕</button>
+      </div>
+      <div class="inspector-list" id="inspList"></div>
+    </div>
+  </aside>
+</div>
+
+<script src="functions.js"></script>
+<script src="aliases.js"></script>
+
+<script>
+'use strict';
+
+/* ============================================================
+   HELPERS
+============================================================ */
+const $ = s => document.querySelector(s);
+const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+const fmtNum = n => Number(n).toLocaleString('es-PY');
+
+function mdLite(s){
+  let h = escapeHtml(s);
+  h = h.replace(/(^|\n)([ \t]*)([-*])[ \t]+/g, '$1$2• ');
+  h = h.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  return h;
+}
+
+function fmtISO(d){ const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+function iso(offset){ const d = new Date(); d.setDate(d.getDate()+offset); return fmtISO(d); }
+function isoFrom(dateStr, days){ const [y,m,d] = dateStr.split('-').map(Number); const dt = new Date(y, m-1, d); dt.setDate(dt.getDate()+days); return fmtISO(dt); }
+const todayISO = () => iso(0);
+function diffDays(a,b){ return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00'))/86400000); }
+
+async function copyText(t){
+  try{ await navigator.clipboard.writeText(t); }
+  catch{
+    const ta = document.createElement('textarea'); ta.value = t;
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch{}
+    ta.remove();
+  }
+}
+
+/* ============================================================
+   CARGA DE LA DB (JSON)
+   1° intenta "db.json" externo (mismo directorio/dominio)
+   2° si no existe, usa el bloque embebido #db-json
+============================================================ */
+let DB = null;
+
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+function hydrateDB(db){
+  const sellers = (db.employees||[]).filter(e=>/venta/i.test(e.department||'')).map(e=>e.name);
+  const s = db.sales_history || {};
+  const pm = s.payment_methods || ['contado'];
+  const cmin = s.cost_ratio_min ?? 0.62, cmax = s.cost_ratio_max ?? 0.88;
+  const rnd = mulberry32((s.seed ?? 2026) + 1);
+
+  const fill = i => {
+    const dayOff = i.day_offset ?? 0;
+    const cust = (db.customers||[]).find(c=>c.name===i.customer);
+    return {
+      id: i.id,
+      customer: i.customer,
+      date: iso(dayOff),
+      amount: i.amount,
+      status: i.status || 'paid',
+      due_date: iso(i.due_offset ?? (dayOff + 15)),
+      seller: i.seller || (cust && cust.seller) || sellers[0] || 'N/A',
+      payment_method: i.payment_method || pm[Math.floor(rnd()*pm.length)],
+      cost: i.cost ?? Math.round(i.amount * (cmin + rnd()*(cmax-cmin)))
+    };
+  };
+
+  db.invoices = (db.invoices||[]).map(fill);
+
+  let seq = s.next_id ?? (db.invoices.length + 1);
+  for(let d = -(s.days_back ?? 60); d <= -1; d++){
+    const count = Math.floor(rnd() * (s.max_invoices_per_day ?? 3)) + (rnd() < (s.extra_chance ?? .3) ? 1 : 0);
+    for(let i = 0; i < count; i++){
+      const c = db.customers[Math.floor(rnd() * db.customers.length)];
+      const amount = ((s.amount_min_step ?? 2) + Math.floor(rnd() * (s.amount_max_steps ?? 40))) * (s.amount_step ?? 250000);
+      db.invoices.push({
+        id: 'FAC-' + String(seq++).padStart(4,'0'),
+        customer: c.name,
+        date: iso(d),
+        amount,
+        status: rnd() < (s.paid_ratio ?? .85) ? 'paid' : 'pending',
+        due_date: iso(d + 15),
+        seller: sellers[Math.floor(rnd() * sellers.length)] || 'N/A',
+        payment_method: pm[Math.floor(rnd() * pm.length)],
+        cost: Math.round(amount * (cmin + rnd() * (cmax - cmin)))
+      });
+    }
+  }
+  db._invoiceSeq = seq;
+
+  (db.purchase_orders||[]).forEach(o => { o.expected = iso(o.expected_offset ?? 7); });
+  return db;
+}
+
+async function loadDB(){
+  const r = await fetch('db.json', { cache: 'no-store' });
+  if(!r.ok) throw new Error('no se pudo cargar db.json (HTTP ' + r.status + ')');
+  const db = hydrateDB(await r.json());
+  return { db, source: 'db.json' };
+}
+const dbReady = loadDB();
+
+/* ============================================================
+   RANGOS DE FECHA
+============================================================ */
+function monthRange(){ const d=new Date(); return { from: fmtISO(new Date(d.getFullYear(), d.getMonth(), 1)), to: fmtISO(new Date(d.getFullYear(), d.getMonth()+1, 0)) }; }
+function weekRange(){ const d=new Date(); const day=(d.getDay()+6)%7; const mon=new Date(d); mon.setDate(d.getDate()-day); const sun=new Date(mon); sun.setDate(mon.getDate()+6); return {from:fmtISO(mon), to:fmtISO(sun)}; }
+function yearRange(){ const y=new Date().getFullYear(); return {from:`${y}-01-01`, to:`${y}-12-31`}; }
+function prevMonthRange(){ const d=new Date(); return { from: fmtISO(new Date(d.getFullYear(), d.getMonth()-1, 1)), to: fmtISO(new Date(d.getFullYear(), d.getMonth(), 0)) }; }
+function prevWeekRange(){ const r=weekRange(); return { from: isoFrom(r.from,-7), to: isoFrom(r.to,-7) }; }
+
+function resolveRange(p){
+  if(p == null) return null;
+  if(typeof p !== 'object'){
+    const t = norm(p);
+    if(t.includes('mes pasado') || t.includes('mes anterior'))       return prevMonthRange();
+    if(t.includes('semana pasada') || t.includes('semana anterior')) return prevWeekRange();
+    if(t.includes('mes'))    return monthRange();
+    if(t.includes('semana')) return weekRange();
+    if(t === 'ano' || t.includes('este ano') || t.includes('ultimo ano')) return yearRange();
+    if(t === 'hoy'){ const d = todayISO(); return {from:d, to:d}; }
+    if(t === 'ayer'){ const d = iso(-1);   return {from:d, to:d}; }
+    const m = String(p).match(/\d{4}-\d{2}-\d{2}/); if(m) return {from:m[0], to:m[0]};
+    return null;
+  }
+  if(p.from || p.to)      return { from: p.from || p.to, to: p.to || p.from };
+  if(p.period != null)    return resolveRange(p.period);
+  if(p.range  != null)    return resolveRange(p.range);
+  if(p.date   != null)    return resolveRange(p.date);
+  return null;
+}
+
+/* Helpers de agregación */
+const sumBy = (arr, fn) => arr.reduce((s,x)=>s+(fn(x)||0), 0);
+const pct = (a,b) => b ? Math.round(a/b*1000)/10 : 0;
+const gs = n => fmtNum(n) + ' ' + (DB?.company?.currency || 'Gs.');
+const inRange = r => DB.invoices.filter(f => f.date >= r.from && f.date <= r.to);
+const expensesInRange = r => DB.expenses.filter(e => { const d = iso(e.day_offset); return d >= r.from && d <= r.to; });
+
+function findCustomer(q){ const n = norm(q); return DB.customers.find(c => norm(c.name).includes(n) || n.includes(norm(c.name).split(' ')[0])); }
+function findProduct(q){ const n = norm(q); return DB.products.find(x => norm(x.name).includes(n) || n.includes(norm(x.name)) || norm(x.sku) === n); }
+function findSupplier(q){ const n = norm(q); return DB.suppliers.find(s => norm(s.name).includes(n)); }
+function findEmployee(q){ const n = norm(q); return DB.employees.find(e => norm(e.name).includes(n) || n.includes(norm(e.name).split(' ')[0])); }
+const nextOC = () => 'OC-' + String(DB.purchase_orders.reduce((m,o)=>Math.max(m, parseInt(o.id.slice(3))||0), 0) + 1).padStart(4,'0');
+
+
+/* ============================================================
+   ESTADO DEL CLIENTE
+   Base URL: se auto-detecta del dominio donde está alojado el
+   HTML (mismo origen). Si se abre como archivo local (file://),
+   cae a localhost:8080. Se puede sobreescribir en el panel.
+============================================================ */
+const state = {
+  baseUrl: (localStorage.getItem('gaia_base_url') || (location.protocol.startsWith('http') ? window.location.origin : 'http://localhost:8080')).replace(/\/+$/,''),
+  sessionId: (crypto.randomUUID ? crypto.randomUUID() : 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2)),
+  collectedData: null,
+  history: [],
+  unknownFunctions: [],
+  dbSource: '',
+  inspOpen: false,
+  busy: false
+};
+
+/* Valores placeholder del LLM → se descartan */
+const PLACEHOLDERS = new Set(['value','unknown','undefined','null','none','n/a','na','nombre','name','doctor','cliente','client','producto','product','fecha','date','hora','time','dato','param','parameter','x','?','-','—','...','algo','test']);
+function isPlaceholder(v, key){
+  if(v === null || v === undefined) return true;
+  if(typeof v === 'number' || typeof v === 'boolean') return false;
+  if(typeof v === 'object') return false;
+  const s = norm(v);
+  if(!s || PLACEHOLDERS.has(s)) return true;
+  if(key && s === norm(key)) return true;
+  return false;
+}
+function dropPlaceholders(params){
+  const clean = {}, dropped = [];
+  for(const [k,v] of Object.entries(params || {})){
+    if(isPlaceholder(v, k)) dropped.push(k); else clean[k] = v;
+  }
+  return { clean, dropped };
+}
+
+/* ============================================================
+   RESPUESTAS LOCALES (identidad, saludos, límites del catálogo)
+   El chat está LIMITADO a lo que hay en CATALOG.
+============================================================ */
+function capabilityList(){
+  return Object.values(CATALOG).map(f => '• ' + f.description).join('\n');
+}
+
+function identityText(){
+  return `Soy GAIA, el asistente gerencial de ${DB.company.name} 🤖\n\nEstoy conectado al ERP y puedo ayudarte con:\n${capabilityList()}\n\nContame qué necesitás.`;
+}
+
+/* Mensaje único y simple ante función inexistente */
+function notImplementedText(fName){
+  return `La función «${fName}» no está implementada.`;
+}
+
+const GENERIC_HELP = 'Puedo ayudarte con el ERP: facturación, rentabilidad, gastos, cobranzas, caja, inventario, proveedores, RRHH y KPIs gerenciales. ¿Qué necesitás?';
+
+function localConversationReply(intent, message){
+  if(intent === '__generic__') return GENERIC_HELP;
+  const t = norm(intent) + ' | ' + norm(message || '');
+  if(/introduc|who\s*are|quien\s*(eres|sos)|que\s*(eres|sos)|identidad|presentate|presentacion|hablame\s*de\s*ti/.test(t))
+    return identityText();
+  if(/greet|saludo|(^|\s)(hola|holis|hi|hey|buenas|buenos\s*dias|buen\s*dia|buenas\s*tardes|buenas\s*noches|que\s*tal|como\s*estas|como\s*andas)(\s|$)/.test(t))
+    return '¡Hola! ¿En qué te puedo ayudar hoy? 😊';
+  if(/gracias|thank/.test(t))
+    return '¡De nada! Estoy para lo que necesites. 🙌';
+  if(/(^|\s)(chau|adios|bye)(\s|$)|hasta\s*luego|nos\s+vemos|despedid/.test(t))
+    return '¡Hasta pronto! Si necesitás algo más, acá estoy. 👋';
+  if(/(^|\s)(ayuda|help)(\s|$)|que\s*podes|podes\s*hacer|que\s+puedes|capacid|funciones|para\s+que\s+sirves|como\s+funcionas/.test(t))
+    return `Puedo ejecutar ${Object.keys(CATALOG).length} funciones sobre el ERP:\n\n${capabilityList()}`;
+  return null;
+}
+
+function localSynth(response, intent, mode = 'conversation'){
+  return {
+    response,
+    mode,
+    history_entry: { role:'assistant', summary:'respondí ' + intent + ' (local)', timestamp: new Date().toISOString() }
+  };
+}
+
+/* ============================================================
+   LOG DE TURNO (resumen consolidado para el Inspector)
+============================================================ */
+let turnLog = null;
+function beginTurnLog(userMessage){
+  turnLog = {
+    session_id: state.sessionId,
+    timestamp: new Date().toISOString(),
+    user_message: userMessage,
+    steps: []
+  };
+}
+function turnStep(label, data){
+  if(turnLog) turnLog.steps.push({ step: label, data: data ?? null });
+}
+function endTurnLog(extra){
+  if(!turnLog) return;
+  Object.assign(turnLog, extra || {});
+  logEvent('turn', '🔄 turno completo (consolidado)', turnLog);
+  turnLog = null;
+}
+
+/* ============================================================
+   INSPECTOR
+============================================================ */
+const INSP_MAX = 80;
+const insp = { entries: [], seq: 0 };
+
+function kindOfPath(p){
+  if(p.includes('analyze'))   return 'analyze';
+  if(p.includes('normalize')) return 'normalize';
+  if(p.includes('synthesize'))return 'synthesize';
+  if(p.includes('health'))    return 'health';
+  return 'other';
+}
+
+function pushEntry(entry){
+  insp.seq += 1;
+  entry.n = insp.seq;
+  insp.entries.unshift(entry);   // los más nuevos SIEMPRE arriba
+  if(insp.entries.length > INSP_MAX) insp.entries.pop();
+  renderInspector();
+}
+
+function logTraffic(method, path, req, res, status){
+  const bad = !status || status >= 400;
+  pushEntry({
+    kind: bad ? 'error' : kindOfPath(path),
+    method, path, status, ts: new Date(),
+    blocks: [
+      req !== undefined ? { label:'→ request', data: req } : null,
+      { label: bad ? '← response / error' : '← response', data: res }
+    ].filter(Boolean)
+  });
+}
+
+function logEvent(kind, label, data){
+  pushEntry({ kind, method:'', path: label, status: null, ts: new Date(), blocks: [{ label:'json', data }] });
+}
+
+function renderInspector(){
+  const w = $('#inspList');
+  $('#inspCount').textContent = insp.entries.length;
+  const btn = $('#btnInsp'), cnt = $('#btnInspCnt');
+  if(!state.inspOpen && insp.entries.length){
+    cnt.textContent = insp.entries.length; cnt.classList.add('show'); btn.classList.add('has-new');
+  } else {
+    cnt.classList.remove('show'); btn.classList.remove('has-new');
+  }
+  if(!insp.entries.length){
+    w.innerHTML = '<p class="empty">Sin tráfico todavía.</p>';
+    return;
+  }
+  w.innerHTML = '';
+  insp.entries.forEach((e, i) => {
+    const d = document.createElement('details');
+    d.className = 'insp-entry kind-' + e.kind;
+    if(i === 0) d.open = true;
+
+    const sum = document.createElement('summary');
+    sum.innerHTML =
+      `<span class="arrow"></span>` +
+      `<span class="insp-num">#${e.n}</span>` +
+      `<span class="kind-tag">${escapeHtml(e.method || e.kind)}</span>` +
+      `<span class="insp-path" title="${escapeHtml(e.path)}">${escapeHtml(e.path)}</span>` +
+      `<span class="insp-time">${e.ts.toLocaleTimeString()}${e.status ? ' · ' + e.status : ''}</span>`;
+
+    const body = document.createElement('div'); body.className = 'insp-body';
+    e.blocks.forEach(b => {
+      const l = document.createElement('div'); l.className = 'io-label'; l.textContent = b.label;
+      const pre = document.createElement('pre'); pre.className = 'mini-pre';
+      pre.textContent = typeof b.data === 'string' ? b.data : JSON.stringify(b.data, null, 2);
+      body.appendChild(l); body.appendChild(pre);
+    });
+
+    const cp = document.createElement('button'); cp.className = 'btn tiny'; cp.textContent = 'Copiar JSON';
+    cp.onclick = async () => {
+      const payload = e.blocks.map(b => b.label + '\n' + (typeof b.data === 'string' ? b.data : JSON.stringify(b.data, null, 2))).join('\n\n');
+      await copyText(payload);
+      cp.textContent = '✔ Copiado'; setTimeout(() => cp.textContent = 'Copiar JSON', 1500);
+    };
+    body.appendChild(cp);
+
+    d.appendChild(sum); d.appendChild(body); w.appendChild(d);
+  });
+}
+
+/* ============================================================
+   CAPA API
+============================================================ */
+async function api(method, path, body, timeoutMs = 20000){
+  const url = state.baseUrl + path;
+  const ctrl = new AbortController();
+  const tm = setTimeout(() => ctrl.abort(), timeoutMs);
+  try{
+    const res = await fetch(url, {
+      method,
+      headers: body ? {'Content-Type':'application/json'} : {},
+      body: body ? JSON.stringify(body) : undefined,
+      signal: ctrl.signal
+    });
+    if(!res.ok){
+      let detail = ''; try{ detail = (await res.text()).slice(0, 500); }catch{}
+      logTraffic(method, path, body, { http_status: res.status, detail: detail || '(sin cuerpo)' }, res.status);
+      const err = new Error('HTTP ' + res.status); err.status = res.status; err.detail = detail;
+      throw err;
+    }
+    const json = await res.json();
+    logTraffic(method, path, body, json, res.status);
+    return json;
+  }catch(e){
+    if(e?.name === 'AbortError' || !e?.status){
+      logTraffic(method, path, body, { network_error: e?.message || String(e) }, 0);
+    }
+    throw e;
+  } finally { clearTimeout(tm); }
+}
+
+async function checkHealth(){
+  setDot('pending', 'verificando…');
+  try{
+    const h = await api('GET', '/health', null, 5000);
+    setDot('ok', `${h.name} v${h.version} · ${h.status}`);
+  }catch{ setDot('fail', 'sin conexión con GAIA'); }
+}
+
+/* ============================================================
+   UI
+============================================================ */
+const msgs = $('#messages');
+const scrollDown = () => { msgs.scrollTop = msgs.scrollHeight; };
+
+function addUser(text){
+  const d = document.createElement('div');
+  d.className = 'msg user'; d.textContent = text;
+  msgs.appendChild(d); scrollDown();
+}
+
+function addAssistant(text, meta = {}){
+  const d = document.createElement('div');
+  d.className = 'msg assistant';
+  d.innerHTML = mdLite(text);
+  const parts = [
+    meta.intent ? String(meta.intent) : null,
+    meta.fName ? 'fn: ' + meta.fName : null,
+    meta.confidence != null ? 'conf ' + Number(meta.confidence).toFixed(2) : null,
+    meta.mode ? 'modo: ' + meta.mode : null,
+    meta.local ? 'local' : null,
+    meta.errorCode ? 'error: ' + meta.errorCode : null
+  ].filter(Boolean);
+  if(parts.length){
+    const m = document.createElement('div');
+    m.className = 'meta'; m.textContent = parts.join(' · ');
+    d.appendChild(m);
+  }
+  msgs.appendChild(d); scrollDown();
+}
+
+function addSystem(kind, html, subHtml){
+  const d = document.createElement('div');
+  d.className = 'msg system ' + kind;
+  d.innerHTML = html + (subHtml ? `<br><span style="opacity:.8">${subHtml}</span>` : '');
+  msgs.appendChild(d); scrollDown();
+  return d;
+}
+
+let typingEl = null;
+function showTyping(){ if(typingEl) return; typingEl = document.createElement('div'); typingEl.className = 'typing'; typingEl.innerHTML = '<span></span><span></span><span></span>'; msgs.appendChild(typingEl); scrollDown(); }
+function hideTyping(){ typingEl?.remove(); typingEl = null; }
+
+function setDot(status, text){
+  ['#dot','#dot2'].forEach(s => { $(s).className = 'dot ' + status; });
+  $('#connText').textContent = text;
+  $('#connText2').textContent = text;
+}
+
+function renderSession(){
+  $('#sessionInfo').innerHTML = `
+    <div><span>Sesión</span><b>${escapeHtml(state.sessionId.slice(0,8))}…</b></div>
+    <div><span>Historial</span><b>${state.history.length}/6 entradas</b></div>
+    <div><span>Turno</span><b>${state.collectedData ? escapeHtml(state.collectedData.status) : 'cerrado'}</b></div>
+    <div><span>DB prueba</span><b>${escapeHtml(state.dbSource)}</b></div>`;
+  $('#stateView').textContent = state.collectedData ? JSON.stringify(state.collectedData, null, 2) : 'null';
+}
+
+function renderCatalog(){
+  const wrap = $('#catalogList'); wrap.innerHTML = '';
+  for(const [name, fn] of Object.entries(CATALOG)){
+    const d = document.createElement('details'); d.className = 'fn';
+    const badges =
+      fn.required.map(k => `<span class="badge required">${escapeHtml(k)}</span>`).join('') +
+      Object.keys(fn.optional).map(k => `<span class="badge optional">${escapeHtml(k)}*</span>`).join('');
+    d.innerHTML = `<summary><code>${escapeHtml(name)}</code></summary><p>${escapeHtml(fn.description)}</p><div style="padding:0 10px 10px">${badges || '<span class="empty">sin parámetros</span>'}</div>`;
+    wrap.appendChild(d);
+  }
+  $('#catalogCount').textContent = Object.keys(CATALOG).length;
+}
+
+function registerUnknown(fName, params){
+  state.unknownFunctions.unshift({ name: fName, params: params || {}, at: new Date().toISOString() });
+  renderUnknown();
+}
+
+function renderUnknown(){
+  const w = $('#unknownList');
+  if(!state.unknownFunctions.length){ w.innerHTML = '<p class="empty">Ninguna por ahora ✔</p>'; return; }
+  w.innerHTML = '';
+  for(const u of state.unknownFunctions){
+    const d = document.createElement('div'); d.className = 'unknown-item';
+    d.innerHTML = `<code>${escapeHtml(u.name)}</code><small>${u.at.slice(11,19)} · parámetros detectados:</small>`;
+    const pre = document.createElement('pre'); pre.className = 'mini-pre'; pre.textContent = JSON.stringify(u.params, null, 1);
+    const b = document.createElement('button'); b.className = 'btn tiny'; b.textContent = 'Copiar';
+    b.onclick = async () => {
+      await copyText(`Función no implementada: "${u.name}"\nParámetros detectados: ${JSON.stringify(u.params)}\nAgrégala al catálogo CATALOG del cliente GAIA.`);
+      b.textContent = '✔ Copiado'; setTimeout(() => b.textContent = 'Copiar', 1600);
+    };
+    d.appendChild(pre); d.appendChild(b); w.appendChild(d);
+  }
+}
+
+
+
+
+/* ============================================================
+   ORQUESTACIÓN DEL TURNO
+============================================================ */
+async function processTurn(message){
+  if(state.busy || !message) return;
+  await dbReady;
+  state.busy = true;
+  $('#input').disabled = true; $('#input').value = '';
+  $('.send').disabled = true;
+  addUser(message); showTyping();
+  beginTurnLog(message);
+
+  try{
+    /* 1) ANALYZE */
+    const analysis = await api('POST', '/v1/analyze', {
+      session_id: state.sessionId,
+      message,
+      collected_data: state.collectedData,
+      history: state.history.slice(-6)
+    });
+    turnStep('1. analyze (GAIA)', analysis);
+
+    const intent = analysis.intent || 'unknown';
+    const fName  = (analysis.function_name || '').trim();
+    const isConversation = !fName || /^conversation/i.test(intent);
+
+    // Si el Planner dice que es solo un tema (sin acción)
+    if(intent === "topic_query" || (!fName && !isConversation)){
+    const topic = analysis.parameters?.topic || "ese tema";
+    const menu = getTopicMenu(topic);
+    turnStep('2. topic_query (el cliente responde con opciones)', { topic, menu });
+    logEvent('local', '📋 topic_query → menú de opciones', { topic, message });
+    finishTurn(message, localSynth(menu, intent), { intent, confidence: analysis.confidence, local: true });
+    return;
+    }
+
+
+
+    /* 2a) Conversación pura */
+    if(isConversation){
+      const local = localConversationReply(intent, message);
+      if(local){
+        turnStep('2. respuesta local (el cliente responde solo, no llama a GAIA)', { intent, response: local });
+        logEvent('local', '💬 respuesta local (sin llamar a GAIA)', { intent, message, response: local });
+        finishTurn(message, localSynth(local, intent), { intent, confidence: analysis.confidence, local: true });
+        return;
+      }
+
+      let synth;
+      try{
+        synth = await api('POST', '/v1/synthesize', {
+          original_message: message, intent, history: state.history.slice(-6)
+        });
+        turnStep('2. synthesize (GAIA)', synth);
+      }catch{
+        synth = localSynth(GENERIC_HELP, intent);
+        turnStep('2. synthesize falló → fallback local', { response: GENERIC_HELP });
+      }
+      if(synth.mode !== 'conversation'){
+        logEvent('local', '🔧 fallback local (GAIA devolvió modo "' + synth.mode + '" para un intent de conversación)', { intent, original_response: synth.response });
+        turnStep('2b. fallback local', { motivo: 'GAIA devolvió modo "' + synth.mode + '"', reemplazo_por: GENERIC_HELP });
+        synth = localSynth(GENERIC_HELP, intent);
+      }
+      finishTurn(message, synth, { intent, confidence: analysis.confidence, local: true });
+      return;
+    }
+
+    /* 2b) Verificar contra el catálogo → si no existe, mensaje simple local */
+    
+    const resolvedName = (window.FUNCTION_ALIASES && window.FUNCTION_ALIASES[fName]) || fName;
+    const fn = CATALOG[resolvedName];
+    if(resolvedName !== fName){
+    turnStep('2a. alias aplicado', { original: fName, resuelto: resolvedName });
+    console.log('[alias]', fName, '→', resolvedName);
+    }
+
+
+    if(!fn){
+      registerUnknown(fName, analysis.parameters);
+      turnStep('2. verificación de catálogo', { function_name: fName, existe: false, accion: 'no se ejecuta nada; respuesta local' });
+      logEvent('error', '⛔ función no implementada: ' + fName + '()', {
+        function_name: fName,
+        parameters: analysis.parameters || {},
+        intent,
+        accion: 'registrada en el panel lateral · el chat respondió que no está implementada'
+      });
+      finishTurn(message, localSynth(notImplementedText(fName), intent, 'error'),
+        { intent, fName, errorCode: 'function_not_found', local: true });
+      return;
+    }
+
+    /* 3) Merge + filtrar placeholders */
+    const merged = { ...(state.collectedData?.parameters || {}), ...(analysis.parameters || {}) };
+    const { clean } = dropPlaceholders(merged);
+    turnStep('2. parámetros (collected_data + mensaje, filtrados)', { combinados: merged, finales: clean });
+
+    /* 4) NORMALIZE (best-effort) */
+    let params = clean;
+    try{
+      const nres = await api('POST', '/v1/normalize', { parameters: clean }, 10000);
+      if(nres?.parameters) params = nres.parameters;
+      turnStep('3. normalize (GAIA)', nres);
+    }catch{
+      turnStep('3. normalize falló → se usan valores crudos', params);
+      logEvent('local', '⚠ normalize falló, uso valores crudos', clean);
+    }
+
+    /* 5) missing_slots contra el contrato */
+    const missing = fn.required.filter(k => {
+      const v = params[k];
+      return v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length);
+    });
+
+    const base = { original_message: message, intent, function_name: resolvedName, parameters: params, history: state.history.slice(-6) };
+    
+
+    /* 6a) Faltan datos → clarify */
+    if(missing.length){
+      turnStep('4. faltan datos (missing_slots)', missing);
+      state.collectedData = { intent, function_name: resolvedName, parameters: params, missing_slots: missing, status: 'waiting_for_data' };
+      const synth = await api('POST', '/v1/synthesize', { ...base, missing_slots: missing });
+      turnStep('5. synthesize (clarify)', synth);
+      finishTurn(message, synth, { intent, confidence: analysis.confidence, fName });
+      return;
+    }
+
+    /* 6b) Ejecutar la función contra la DB */
+    let rawData, errorCode = null;
+    try{ rawData = await fn.execute(params); }
+    catch(e){ errorCode = 'execution_failed'; rawData = 'ERROR: ' + (e?.message || e); }
+
+    turnStep('4. ejecución local ' + fName + '()', errorCode ? { error_code: errorCode, error: rawData } : { raw_data: rawData });
+    logEvent('exec', '⚙ ejecutada: ' + fName + '()',
+      errorCode ? { parameters: params, error_code: errorCode, error: rawData } : { parameters: params, raw_data: rawData });
+
+    state.collectedData = { intent, function_name: fName, parameters: params, missing_slots: [], status: 'ready_to_execute' };
+
+    /* 7) SYNTHESIZE */
+    const sreq = { ...base, raw_data: String(rawData) };
+    if(errorCode) sreq.error_code = errorCode;
+    const synth = await api('POST', '/v1/synthesize', sreq);
+    turnStep('5. synthesize (GAIA)', synth);
+    finishTurn(message, synth, { intent, confidence: analysis.confidence, fName, errorCode });
+
+  }catch(err){
+    hideTyping();
+    turnStep('✖ error de conexión con GAIA', { message: err?.message || String(err) });
+    endTurnLog({ final_response: '(no se pudo completar el turno: error de conexión con GAIA)', mode: 'error', fuente: 'error' });
+    if(err?.name === 'AbortError'){
+      addSystem('error', '⏱ GAIA no respondió a tiempo (timeout).', '¿Está corriendo el servidor en ' + escapeHtml(state.baseUrl) + '?');
+    }else if(err?.status){
+      addSystem('error', `❌ GAIA respondió <b>HTTP ${err.status}</b>.`, escapeHtml(err.detail || ''));
+    }else{
+      addSystem('error', `❌ No pude conectar con GAIA en <code>${escapeHtml(state.baseUrl)}</code>.`, 'Verificá que el servidor esté corriendo y que tenga CORS habilitado para este origen.');
+    }
+  }finally{
+    state.busy = false;
+    $('#input').disabled = false; $('.send').disabled = false;
+    $('#input').focus();
+  }
+}
+
+function finishTurn(userMessage, synth, meta){
+  hideTyping();
+  addAssistant(synth.response, { ...meta, mode: synth.mode });
+  turnStep('6. respuesta final mostrada al usuario', { response: synth.response, mode: synth.mode });
+  endTurnLog({ final_response: synth.response, mode: synth.mode, fuente: meta.local ? 'cliente (local)' : 'GAIA' });
+
+  state.history.push({ role:'user', content: userMessage, timestamp: new Date().toISOString() });
+  if(synth.history_entry) state.history.push(synth.history_entry);
+  state.history = state.history.slice(-6);
+
+  if(['respond','error','conversation'].includes(synth.mode)) state.collectedData = null;
+
+  renderSession();
+}
+
+
+function getTopicMenu(topic){
+  const t = norm(topic);
+  if(/factur|venta|ingreso|cobr/.test(t))
+    return 'Sobre facturación puedo darte:\n• Facturación de hoy → "cuánto facturé hoy"\n• Facturación del mes → "facturación del mes"\n• Por vendedor → "ventas por vendedor"\n• Comparación con el mes anterior → "crecí respecto al mes pasado"\n• Cuentas por cobrar → "cuentas por cobrar"\n\n¿Cuál te interesa?';
+  if(/client/.test(t))
+    return 'Sobre clientes puedo darte:\n• Buscar un cliente → "buscame a Juan Pérez"\n• Top clientes → "top clientes del mes"\n• Crédito de un cliente → "crédito de Juan Pérez"\n\n¿Qué querés saber?';
+  if(/inventario|stock|producto/.test(t))
+    return 'Sobre inventario puedo darte:\n• Stock de un producto → "stock de Azúcar 50 kg"\n• Productos bajo mínimo → "stock bajo mínimo"\n• Valorización → "valor del inventario"\n\n¿Qué necesitás?';
+  if(/gasto|presupuesto/.test(t))
+    return 'Sobre gastos puedo darte:\n• Gastos del mes → "gastos del mes"\n• Por categoría → "gastos por categoría"\n• Presupuesto vs real → "presupuesto vs real"\n\n¿Cuál te interesa?';
+  if(/proveedor/.test(t))
+    return 'Sobre proveedores puedo darte:\n• Deuda total → "deuda con proveedores"\n• Ficha de uno → "buscame a Lácteos del Norte"\n\n¿Qué necesitás?';
+  if(/empleado|rrhh|personal/.test(t))
+    return 'Sobre RRHH puedo darte:\n• Buscar un empleado → "buscame a Pedro Vera"\n• Dotación por área → "empleados por departamento"\n\n¿Qué querés saber?';
+  if(/kpi|tablero|resumen/.test(t))
+    return 'Sobre KPIs puedo darte:\n• Tablero consolidado → "KPIs del mes"\n• Margen de ganancia → "margen del mes"\n• P&L → "estado de resultados"\n\n¿Cuál te interesa?';
+  return 'Contame un poco más sobre qué necesitás.';
+}
+
+
+
+
+/* ============================================================
+   EVENTOS
+============================================================ */
+ $('#composer').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = $('#input').value.trim();
+  if(v) processTurn(v);
+});
+
+const SUGGESTIONS = [
+  'KPIs del mes',
+  '¿Cuánto facturé hoy?',
+  '¿Crecí respecto al mes pasado?',
+  'Ventas por vendedor',
+  'Margen de ganancia de este mes',
+  'Cuentas por cobrar',
+  'Posición de caja',
+  'Presupuesto vs real',
+  'Productos con mayor margen',
+  'Stock bajo mínimo',
+  'Quiero agendar una reunión'
+];
+(function renderChips(){
+  const w = $('#chips');
+  SUGGESTIONS.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.type = 'button'; b.textContent = t;
+    b.onclick = () => { if(!state.busy) processTurn(t); };
+    w.appendChild(b);
+  });
+})();
+
+ $('#btnNew').onclick = () => {
+  state.sessionId = crypto.randomUUID ? crypto.randomUUID() : 'sess-' + Date.now();
+  state.history = []; state.collectedData = null;
+  msgs.innerHTML = '';
+  addSystem('info', '🔄 Nueva conversación iniciada.', 'Historial y collected_data reseteados.');
+  renderSession();
+};
+
+ $('#baseUrl').value = state.baseUrl;
+ $('#baseUrl').addEventListener('change', e => {
+  state.baseUrl = e.target.value.trim().replace(/\/+$/,'');
+  localStorage.setItem('gaia_base_url', state.baseUrl);
+  checkHealth();
+});
+ $('#btnHealth').onclick = checkHealth;
+
+/* Drawer izquierdo (mobile) */
+const panel = $('#panel'), backdrop = $('#backdrop');
+const openPanel  = () => { panel.classList.add('open'); syncBackdrop(); };
+const closePanel = () => { panel.classList.remove('open'); syncBackdrop(); };
+ $('#btnMenu').onclick = openPanel;
+ $('#closePanel').onclick = closePanel;
+backdrop.onclick = () => { closePanel(); if(window.matchMedia('(max-width:1100px)').matches) setInspector(false); };
+
+/* Inspector JSON (derecha) */
+function setInspector(open){
+  state.inspOpen = !!open;
+  $('#inspector').classList.toggle('open', state.inspOpen);
+  $('#btnInsp').classList.toggle('active', state.inspOpen);
+  localStorage.setItem('gaia_inspector_open', state.inspOpen ? '1' : '0');
+  syncBackdrop();
+  renderInspector();
+}
+ $('#btnInsp').onclick = () => setInspector(!state.inspOpen);
+ $('#btnCloseInsp').onclick = () => setInspector(false);
+ $('#btnClearInsp').onclick = () => { insp.entries = []; renderInspector(); };
+
+function syncBackdrop(){
+  const mobile = window.matchMedia('(max-width:1100px)').matches;
+  const need = panel.classList.contains('open') || (state.inspOpen && mobile);
+  backdrop.classList.toggle('show', need);
+}
+window.addEventListener('resize', syncBackdrop);
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape'){
+    if(panel.classList.contains('open')) closePanel();
+    else if(state.inspOpen && window.matchMedia('(max-width:1100px)').matches) setInspector(false);
+  }
+});
+
+/* ============================================================
+   INIT
+============================================================ */
+renderCatalog();
+renderUnknown();
+setInspector(localStorage.getItem('gaia_inspector_open') !== '0' && window.innerWidth > 1100);
+
+dbReady.then(({ db, source }) => {
+  DB = db;
+  state.dbSource = source;
+  renderSession();
+  logEvent('db', '📦 base de datos de prueba cargada', {
+    source,
+    products: DB.products.length,
+    customers: DB.customers.length,
+    employees: DB.employees.length,
+    invoices: DB.invoices.length,
+    expenses: DB.expenses.length,
+    suppliers: DB.suppliers.length,
+    purchase_orders: DB.purchase_orders.length,
+    bank_accounts: DB.bank_accounts.length
+  });
+  addAssistant(`👋 Hola! Soy el asistente gerencial de ${DB.company.name}. Puedo ayudarte con facturación, rentabilidad, gastos, cobranzas, caja, inventario, proveedores, RRHH y KPIs. Probá una sugerencia o escribí tu consulta.`);
+  checkHealth();
+
+  
+});
+</script>
+</body>
+</html>

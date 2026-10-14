@@ -14,11 +14,8 @@ import (
 )
 
 const (
-	// Zona horaria por defecto (Paraguay)
-	DefaultTimezone = "America/Asuncion"
-
-	// Máximo de mensajes de historial que se inyectan al prompt
-	MaxHistoryForPrompt = 6 // 3 turnos = 6 mensajes (user+assistant)
+	DefaultTimezone     = "America/Asuncion"
+	MaxHistoryForPrompt = 6
 )
 
 type Planner struct {
@@ -33,42 +30,36 @@ func NewPlanner(llm providers.LLMProvider) *Planner {
 	}
 }
 
-// SetTimezone permite sobreescribir la zona horaria
 func (p *Planner) SetTimezone(tz string) {
 	if tz != "" {
 		p.timezone = tz
 	}
 }
 
-// Analyze es el Cerebro 1: extrae intent, function_name y parameters.
-// No calcula missing_slots, no decide status, no genera texto al usuario.
 func (p *Planner) Analyze(
 	ctx context.Context,
 	req models.ChatRequest,
 ) (*models.AnalysisResponse, error) {
 
-	// 1. Calcular la fecha/hora actual (uso interno)
 	now := p.currentTime()
-
-	// 2. Armar el prompt
 	systemPrompt := p.buildSystemPrompt(req, now)
 
-	// 3. Preparar mensajes: system + el mensaje actual
+	log.Printf("[Planner] PROMPT ↓")
+	log.Println(systemPrompt)
+	log.Printf("[Planner] PROMPT ↑")
+
 	messages := []providers.Message{
 		{Role: "system", Content: systemPrompt},
 		{Role: "user", Content: req.Message},
 	}
 
-	// 4. Definir tools
 	tools := p.getAnalysisTools()
 
-	// 5. Llamar al LLM
 	llmResponse, err := p.llm.Chat(ctx, messages, tools)
 	if err != nil {
 		return nil, fmt.Errorf("error al llamar al LLM: %w", err)
 	}
 
-	// 6. Procesar respuesta
 	analysis := &models.AnalysisResponse{
 		OriginalInput: req.Message,
 		Parameters:    map[string]interface{}{},
@@ -87,22 +78,22 @@ func (p *Planner) Analyze(
 			}
 
 			analysis.Intent = toString(args["intent"])
+			analysis.IsConversational = toBool(args["is_conversational"])
 			analysis.FunctionName = toString(args["function_name"])
 			analysis.Parameters = toMap(args["parameters"])
 			analysis.Confidence = toFloat64(args["confidence"])
 		}
 	} else {
-		// Sin tool call: conversación casual
-		analysis.Intent = "conversation"
-		analysis.FunctionName = ""
+		analysis.Intent = "El usuario no dio una instrucción clara"
+		analysis.IsConversational = true
+		analysis.FunctionName = "obtener_conversacion"
 		analysis.Parameters = map[string]interface{}{}
-		analysis.Confidence = 1.0
+		analysis.Confidence = 0.3
 	}
 
 	return analysis, nil
 }
 
-// currentTime devuelve la hora actual en la zona configurada
 func (p *Planner) currentTime() time.Time {
 	loc, err := time.LoadLocation(p.timezone)
 	if err != nil {
@@ -117,90 +108,174 @@ func (p *Planner) buildSystemPrompt(
 	now time.Time,
 ) string {
 
-	collectedDataStr := "(none)"
-	if len(req.CollectedData) > 0 {
-		collectedDataStr = formatMap(req.CollectedData)
+	slotsStr := "(ninguno)"
+	if len(req.DataSlots) > 0 {
+		parts := make([]string, 0, len(req.DataSlots))
+		for k, v := range req.DataSlots {
+			if v == nil {
+				parts = append(parts, fmt.Sprintf("%s=null", k))
+			} else {
+				parts = append(parts, fmt.Sprintf("%s=%v", k, v))
+			}
+		}
+		slotsStr = "{" + strings.Join(parts, ", ") + "}"
+	}
+
+	functionStr := req.FunctionName
+	if functionStr == "" {
+		functionStr = "(ninguna)"
 	}
 
 	historyStr := p.formatHistory(req.History)
 
-	return fmt.Sprintf(`You are GAIA, an intent analyzer for enterprise systems.
+	return fmt.Sprintf(`Sos GAIA. Leé el mensaje del usuario y devolvé un JSON vía update_intent.
 
-## Current date and time
-%s (timezone: %s)
-
-## Your task
-Extract ONLY these fields from the user's message:
-1. "intent": General intent in English snake_case (e.g. "query_billing")
-2. "function_name": Specific function in English snake_case using an approved verb prefix
-3. "parameters": Key data extracted from the message (keys in English, values RAW as the user wrote them)
-4. "confidence": Your confidence level (0.0 to 1.0)
-
-## Do NOT do any of these
-- Do NOT compute missing slots
-- Do NOT decide status (ready/waiting/etc)
-- Do NOT generate clarification questions
-- Do NOT generate natural-language responses to the user
-- Do NOT normalize values (dates, numbers, names stay RAW)
-
-## CRITICAL: Extract RAW, do NOT normalize
-You are NOT a normalizer. Another module handles that.
-- "hoy" → keep as "hoy"
-- "150 mil" → keep as "150 mil"
-- "juan ramirez" → keep as "juan ramirez"
-- Extract values in the same language and format the user used.
-
-## Function naming rules (STRICT)
-- Format: snake_case in ENGLISH
-- ALWAYS use one of these approved verbs as prefix:
-  - get_       (single record / specific query)
-  - list_      (multiple records)
-  - create_    (insert)
-  - update_    (modify)
-  - delete_    (remove)
-  - calculate_ (aggregations)
-  - send_      (actions that send something)
-- NEVER invent new verbs. NEVER mix Spanish and English.
-
-## Reference examples
-- "cuanto facture hoy" → intent:"query_billing", function_name:"get_daily_billing", parameters:{"date":"hoy"}, confidence:0.95
-- "estado de cuenta de juan ramirez" → intent:"query_client_balance", function_name:"get_client_balance", parameters:{"client":"juan ramirez"}, confidence:0.95
-- "listame los clientes" → intent:"list_clients", function_name:"list_clients", parameters:{}, confidence:0.95
-- "quiero agendar cita" → intent:"create_appointment", function_name:"create_appointment", parameters:{}, confidence:0.95
-- "el lunes con el doctor ramirez" → intent:"create_appointment", function_name:"create_appointment", parameters:{"date":"el lunes","doctor":"ramirez"}, confidence:0.95
-- "hola" → intent:"conversation", function_name:"", parameters:{}, confidence:1.0
-- "gracias" → intent:"conversation", function_name:"", parameters:{}, confidence:1.0
-
-## Confidence rules (BE CONSERVATIVE)
-- 0.9-1.0: User was very clear and specific
-- 0.7-0.89: Understood but slight ambiguity
-- 0.5-0.69: Ambiguous, could be several things
-- 0.0-0.49: Cannot understand the request
-DO NOT inflate confidence.
-
-## Typo handling
-Ignore typos and spelling mistakes. "kiero el etado" = "quiero el estado". This MUST NOT lower confidence.
-
-## Using collected data and history
-- If "collected_data" already has some parameters, and the user's new message
-  adds more, include BOTH in your "parameters" output.
-- If the user replies with a short value (e.g. "el lunes", "12345", "Juan") and
-  the previous intent was clear, REUSE that intent and fill in the new value.
-- If the user changes topic, DISCARD the previous intent and start fresh.
-
-## Collected data (already known from previous turns)
+## Contexto
+- Fecha: %s (%s)
+- Función pendiente: %s
+- data_slots: %s
+- Historial:
 %s
 
-## Recent conversation (last turns)
-%s
+## Salida
+{
+  "intent": "frase en castellano que resume qué quiere el usuario",
+  "is_conversational": false,
+  "function_name": "verbo_sustantivo[_sufijo]",
+  "parameters": {},
+  "confidence": 0.0
+}
 
-## Current message
+## PRIORIDAD 1 — data_slots pendientes
+
+Si "Función pendiente" NO es "(ninguna)" y hay slots en null:
+  → Tu tarea es SOLO asignar el valor del mensaje al slot que encaje.
+  → MANTENÉ la función pendiente. NO la cambies.
+  → Usá la CLAVE EXACTA del slot.
+  → Valor CRUDO: "el lunes" queda "el lunes". No normalices.
+  → is_conversational: false.
+  → Solo cambiá de función si el usuario EXPLÍCITAMENTE pide otra cosa
+    ("mejor dame X", "ahora quiero Y", "olvidalo, dame Z").
+
+Si NO hay función pendiente, ignorá esta sección y seguí con PRIORIDAD 2.
+
+## PRIORIDAD 2 — Clasificación
+
+- CONVERSACIÓN (saludo, gracias, despedida, "quien sos", "mi perfil"):
+  → is_conversational: true
+  → obtener_saludo | obtener_agradecimiento | obtener_despedida | obtener_info_bot | obtener_mi_perfil
+  → confidence 1.0.
+- TOPIC (solo un sustantivo, sin acción ni criterio): "facturacion", "clientes".
+  → is_conversational: false
+  → function_name "", parameters {"tema":"<topic>"}, confidence 0.5.
+- PETICIÓN: cualquier otra cosa (verbo, pregunta, criterio específico).
+  → is_conversational: false
+- AMBIGUO sin contexto ("dame eso", "che dame eso"):
+  → is_conversational: false
+  → obtener_desconocido, {}, 0.3.
+- FUERA DE ALCANCE (no es del sistema, "quien descubrio america"):
+  → is_conversational: false
+  → obtener_fuera_alcance, {}, 0.9.
+
+## PRIORIDAD 3 — Verbo
+
+Verbo (uno solo, en infinitivo):
+obtener_, listar_, buscar_, verificar_, crear_, actualizar_, eliminar_,
+calcular_, comparar_, generar_, enviar_, agendar_.
+
+| Verbo | Cuándo |
+|---|---|
+| obtener_ + SINGULAR | un valor o reporte (incluye reportes con cálculo adentro: margen, cuentas por cobrar, saldo, estado de resultados, top clientes, KPIs, facturación total, posición de caja) |
+| listar_ + PLURAL | múltiples registros sin filtro |
+| buscar_ + PLURAL | múltiples con filtro (ciudad, categoría) |
+| verificar_ + SINGULAR | existencia/estado (sí/no) |
+| calcular_ | SOLO operación matemática explícita entre dos valores: "cuánto crecí en porcentaje", "promedio", "diferencia". SI DUDÁS, USÁ obtener_ o comparar_. |
+| comparar_ | comparar dos períodos o valores ("vs", "respecto a", "crecí") |
+| generar_ | producir artefacto ("generame", "armá", "creá un informe/reporte/PDF") |
+| crear_, actualizar_, eliminar_, enviar_, agendar_ | acciones directas |
+
+Regla de desempate: si dudás entre calcular_ y obtener_/comparar_, elegí obtener_/comparar_. calcular_ es raro.
+
+## PRIORIDAD 4 — Sustantivo
+
+Vocabulario CERRADO. Usá el término EXACTO. NUNCA sinónimos.
+
+facturacion, clientes, productos, vendedores, categorias, ciudad,
+saldos, caja, posicion, cuentas, margen, kpis, proveedores, empleados,
+departamentos, inventario, stock, ordenes, reuniones, resultados,
+tareas, temas, analisis, informes, reportes.
+
+Equivalencias (siempre estas, nunca otras):
+- "facturación" = "ventas" = "ingresos" → facturacion
+- "saldo" = "deuda" → saldos
+- "caja" = "efectivo" = "liquidez" → posicion (cuando es "posicion de caja")
+- "informe" = "reporte" → informes
+
+Si no está en la lista, elegí el más cercano. NUNCA inventes.
+
+## PRIORIDAD 5 — Forma del nombre
+
+- verbo_sustantivo[_sufijo]. MÁXIMO 3 partes.
+- PROHIBIDAS preposiciones (por/de/para). Convertí a sufijo.
+  ✅ obtener_facturacion_mensual
+  ❌ obtener_facturacion_por_mes
+- Sufijos:
+  - Período: _diaria, _semanal, _mensual, _anual, _periodo
+  - Agrupación: _vendedor, _categoria, _ciudad, _cliente, _producto
+- Los sufijos de agrupación son SOLO para agrupar, NO para filtrar.
+  Filtros van en parameters.
+  ✅ "clientes de asuncion" → buscar_clientes {ciudad:"asuncion"}
+  ❌ "clientes de asuncion" → buscar_clientes_ciudad
+
+## PRIORIDAD 6 — Períodos
+
+- Día ("hoy", "ayer", "el lunes") → obtener_facturacion_diaria, {"fecha":"<crudo>"}
+- Mes/semana/año singular ("este mes", "el mes pasado") → obtener_facturacion_periodo, {"periodo":"<crudo>"}
+- Año específico ("2026") → obtener_facturacion_periodo, {"periodo":"2026"}
+- Plural/desglose ("por meses", "por vendedor") → sufijo.
+  "facturacion por meses" → obtener_facturacion_mensual, {"meses":6}
+
+## PRIORIDAD 7 — Parámetros
+
+- Claves SOLO de: fecha, periodo, meses, cliente, ciudad, producto, vendedor,
+  monto, cantidad, proveedor, estado, limite, sucursal, tema.
+- Valores CRUDOS, sin normalizar. Años como STRING ("2026").
+- No inventes claves. Si algo no encaja, no lo extraigas.
+- Si no necesita parámetros → {}.
+
+## PRIORIDAD 8 — Confianza
+
+- Completo → 0.95-1.0
+- Ambigüedad menor → 0.85-0.95
+- Falta dato → 0.6-0.8
+- Topic → 0.5
+- Ambiguo → 0.3
+- Fuera de alcance → 0.9
+Typos NO bajan la confianza.
+
+## Ejemplos
+- "hola" → {"intent":"El usuario saluda","is_conversational":true,"function_name":"obtener_saludo","parameters":{},"confidence":1.0}
+- "cuanto facture hoy" → {"intent":"El usuario quiere saber cuánto se facturó hoy","is_conversational":false,"function_name":"obtener_facturacion_diaria","parameters":{"fecha":"hoy"},"confidence":0.95}
+- "cuanto facture este mes" → {"intent":"El usuario quiere saber cuánto se facturó este mes","is_conversational":false,"function_name":"obtener_facturacion_periodo","parameters":{"periodo":"este mes"},"confidence":0.95}
+- "dame la facturacion total 2026" → {"intent":"El usuario quiere la facturación del año 2026","is_conversational":false,"function_name":"obtener_facturacion_periodo","parameters":{"periodo":"2026"},"confidence":0.95}
+- "ventas por vendedor" → {"intent":"El usuario quiere ver las ventas por vendedor","is_conversational":false,"function_name":"listar_facturacion_vendedor","parameters":{},"confidence":0.95}
+- "creci respecto al mes pasado" → {"intent":"El usuario quiere comparar la facturación contra el mes pasado","is_conversational":false,"function_name":"comparar_facturacion_periodos","parameters":{"periodo":"el mes pasado"},"confidence":0.95}
+- "posicion de caja" → {"intent":"El usuario quiere ver la posición de caja","is_conversational":false,"function_name":"obtener_posicion_caja","parameters":{},"confidence":0.95}
+- "cuentas por cobrar" → {"intent":"El usuario quiere ver las cuentas por cobrar","is_conversational":false,"function_name":"obtener_cuentas_cobrar","parameters":{},"confidence":0.95}
+- "generame un reporte de ventas" → {"intent":"El usuario quiere generar un informe de ventas","is_conversational":false,"function_name":"generar_informe_ventas","parameters":{},"confidence":0.95}
+- (pendiente: agendar_reunion, slots {doctor:"ramirez", fecha:null}) "el lunes" → {"intent":"El usuario responde con la fecha para la reunión","is_conversational":false,"function_name":"agendar_reunion","parameters":{"fecha":"el lunes"},"confidence":0.95}
+- (pendiente: agendar_reunion, slots {doctor:"ramirez", fecha:null}) "mejor dame la facturacion del mes" → {"intent":"El usuario cambia de tema y pide la facturación del mes","is_conversational":false,"function_name":"obtener_facturacion_periodo","parameters":{"periodo":"este mes"},"confidence":0.95}
+- "facturacion" → {"intent":"El usuario menciona el tema facturación sin acción clara","is_conversational":false,"function_name":"","parameters":{"tema":"facturacion"},"confidence":0.5}
+- "che dame eso" → {"intent":"El usuario hace una referencia ambigua","is_conversational":false,"function_name":"obtener_desconocido","parameters":{},"confidence":0.3}
+
+## Mensaje actual
 "%s"
 
-Use the 'update_intent' function to return your extraction.`,
+Devolvé vía update_intent.`,
 		now.Format("2006-01-02 15:04:05"),
 		p.timezone,
-		collectedDataStr,
+		functionStr,
+		slotsStr,
 		historyStr,
 		req.Message,
 	)
@@ -212,41 +287,43 @@ func (p *Planner) getAnalysisTools() []providers.Tool {
 			Type: "function",
 			Function: providers.FunctionDef{
 				Name:        "update_intent",
-				Description: "Extract intent, function_name, parameters and confidence from the user's message",
+				Description: "Extrae intent, is_conversational, function_name, parameters y confidence del mensaje del usuario",
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
 						"intent": map[string]interface{}{
 							"type":        "string",
-							"description": "General intent in English snake_case (e.g. query_billing)",
+							"description": "UNA FRASE en castellano que resuma qué quiere hacer el usuario. Sin snake_case, sin límite de palabras.",
+						},
+						"is_conversational": map[string]interface{}{
+							"type":        "boolean",
+							"description": "true si el mensaje es charla casual (saludo, gracias, despedida, info del bot, mi perfil). false en cualquier otro caso.",
 						},
 						"function_name": map[string]interface{}{
 							"type":        "string",
-							"description": "Function name in English snake_case using an approved verb prefix (get_, list_, create_, update_, delete_, calculate_, send_). Empty for casual conversation.",
+							"description": "Nombre de función: verbo_sustantivo[_sufijo] en castellano. Verbo: obtener_, listar_, buscar_, verificar_, crear_, actualizar_, eliminar_, calcular_, comparar_, generar_, enviar_, agendar_. Sustantivo: solo del vocabulario permitido (facturacion, clientes, productos, vendedores, categorias, ciudad, saldos, caja, posicion, cuentas, margen, kpis, proveedores, empleados, departamentos, inventario, stock, ordenes, reuniones, resultados, tareas, temas, analisis, informes, reportes). Máximo 3 partes, sin preposiciones. String vacío si es un topic sin acción.",
 						},
 						"parameters": map[string]interface{}{
 							"type":        "object",
-							"description": "Extracted parameters. Keys in English, values RAW as the user wrote them (do NOT normalize).",
+							"description": "Claves SOLO de: fecha, periodo, meses, cliente, ciudad, producto, vendedor, monto, cantidad, proveedor, estado, limite, sucursal, tema. Valores CRUDOS sin normalizar. Años como STRING (\"2026\"). Si no necesita parámetros: {}.",
 						},
 						"confidence": map[string]interface{}{
 							"type":        "number",
-							"description": "Confidence level (0.0 to 1.0)",
+							"description": "0.0 a 1.0. Completo → 0.95. Topic → 0.5. Vago → 0.3.",
 						},
 					},
-					"required": []string{"intent", "function_name", "parameters", "confidence"},
+					"required": []string{"intent", "is_conversational", "function_name", "parameters", "confidence"},
 				},
 			},
 		},
 	}
 }
 
-// formatHistory convierte el historial a texto para el prompt (máx 3 turnos)
 func (p *Planner) formatHistory(history []models.HistoryEntry) string {
 	if len(history) == 0 {
-		return "(no previous history)"
+		return "(sin historial previo)"
 	}
 
-	// Tomar los últimos N
 	start := 0
 	if len(history) > MaxHistoryForPrompt {
 		start = len(history) - MaxHistoryForPrompt
@@ -254,10 +331,10 @@ func (p *Planner) formatHistory(history []models.HistoryEntry) string {
 
 	var sb strings.Builder
 	for _, entry := range history[start:] {
-		label := "user"
+		label := "usuario"
 		content := entry.Content
 		if entry.Role == "assistant" {
-			label = "assistant"
+			label = "asistente"
 			content = entry.Summary
 		}
 		sb.WriteString(fmt.Sprintf("[%s] %s: %s\n",
@@ -269,8 +346,10 @@ func (p *Planner) formatHistory(history []models.HistoryEntry) string {
 	return sb.String()
 }
 
-// formatMap imprime un map de forma legible
 func formatMap(m map[string]interface{}) string {
+	if len(m) == 0 {
+		return "(ninguno)"
+	}
 	parts := make([]string, 0, len(m))
 	for k, v := range m {
 		parts = append(parts, fmt.Sprintf("%s=%v", k, v))
@@ -310,4 +389,14 @@ func toMap(v interface{}) map[string]interface{} {
 		return m
 	}
 	return make(map[string]interface{})
+}
+
+func toBool(v interface{}) bool {
+	if v == nil {
+		return false
+	}
+	if b, ok := v.(bool); ok {
+		return b
+	}
+	return false
 }

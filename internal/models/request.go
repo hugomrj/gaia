@@ -5,11 +5,13 @@ import "time"
 
 // ChatRequest es lo que el cliente envía a GAIA para analizar
 type ChatRequest struct {
-	SessionID     string                 `json:"session_id,omitempty"`
-	Message       string                 `json:"message" binding:"required"`
-	CollectedData map[string]interface{} `json:"collected_data,omitempty"`
-	History       []HistoryEntry         `json:"history,omitempty"`
+	SessionID    string                 `json:"session_id,omitempty"`
+	Message      string                 `json:"message" binding:"required"`
+	FunctionName string                 `json:"function_name,omitempty"` // definido por el cliente
+	DataSlots    map[string]interface{} `json:"data_slots,omitempty"`    // null = falta
+	History      []HistoryEntry         `json:"history,omitempty"`
 }
+
 
 // HistoryEntry es un mensaje resumido del historial (lo maneja el cliente)
 type HistoryEntry struct {
@@ -22,12 +24,14 @@ type HistoryEntry struct {
 // SynthesisRequest es lo que el cliente envía al Synthesizer
 type SynthesisRequest struct {
 	SessionID       string                 `json:"session_id,omitempty"`
-	OriginalMessage string                 `json:"original_message" binding:"required"` // ← NUEVO
+	OriginalMessage string                 `json:"original_message" binding:"required"`
 	Intent          string                 `json:"intent" binding:"required"`
 	FunctionName    string                 `json:"function_name,omitempty"`
 	Parameters      map[string]interface{} `json:"parameters,omitempty"`
-	MissingSlots    []string               `json:"missing_slots,omitempty"`
+	DataSlots       map[string]interface{} `json:"data_slots,omitempty"` // null = falta
 	RawData         string                 `json:"raw_data,omitempty"`
+	ErrorCode       string                 `json:"error_code,omitempty"`
+	Confidence      float64                `json:"confidence,omitempty"`
 	History         []HistoryEntry         `json:"history,omitempty"`
 }
 

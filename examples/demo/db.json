@@ -1,0 +1,177 @@
+{
+  "company": { "name": "Distribuidora Andina S.A.", "tax_id": "80012345-6", "currency": "Gs.", "founded": "1998", "address": "Av. Mcal. López 3421, Asunción", "phone": "+595 21 555 1000", "email": "info@andina.com.py" },
+
+  "branches": [
+    {"id":"SUC-001","name":"Casa Central","city":"Asunción","address":"Av. Mcal. López 3421","manager":"María González","phone":"+595 21 555 1000"},
+    {"id":"SUC-002","name":"Sucursal Encarnación","city":"Encarnación","address":"Ruta 6 km 4","manager":"Pedro Vera","phone":"+595 71 200 300"},
+    {"id":"SUC-003","name":"Sucursal Ciudad del Este","city":"Ciudad del Este","address":"Av. San Blas 1200","manager":"Óscar Peralta","phone":"+595 61 500 700"}
+  ],
+
+  "warehouses": [
+    {"id":"DEP-001","name":"Depósito Central","location":"Asunción","capacity_m3":1500,"manager":"Ana López"},
+    {"id":"DEP-002","name":"Depósito Sur","location":"Encarnación","capacity_m3":800,"manager":"Diego Cáceres"},
+    {"id":"DEP-003","name":"Depósito Norte","location":"Ciudad del Este","capacity_m3":600,"manager":"Hugo Benítez"}
+  ],
+
+  "categories": [
+    {"id":"CAT-001","name":"Alimentos","description":"Productos alimenticios envasados y a granel","margin_target":15},
+    {"id":"CAT-002","name":"Bebidas","description":"Gaseosas, jugos, cervezas y aguas","margin_target":18},
+    {"id":"CAT-003","name":"Limpieza","description":"Productos de limpieza para hogar e industria","margin_target":22},
+    {"id":"CAT-004","name":"Lácteos","description":"Leche, quesos y derivados","margin_target":12},
+    {"id":"CAT-005","name":"Higiene","description":"Cuidado personal e higiene","margin_target":25}
+  ],
+
+  "products": [
+    {"sku":"PRD-001","barcode":"7891000100011","name":"Azúcar 50 kg","category":"Alimentos","warehouse":"Depósito Central","cost":152000,"price":185000,"stock":14,"min_stock":20,"sold_month":132,"supplier":"PROV-002"},
+    {"sku":"PRD-002","barcode":"7891000100028","name":"Harina 25 kg","category":"Alimentos","warehouse":"Depósito Central","cost":78000,"price":98000,"stock":64,"min_stock":25,"sold_month":98,"supplier":"PROV-002"},
+    {"sku":"PRD-003","barcode":"7891000100035","name":"Arroz 25 kg","category":"Alimentos","warehouse":"Depósito Central","cost":89000,"price":112000,"stock":87,"min_stock":30,"sold_month":121,"supplier":"PROV-002"},
+    {"sku":"PRD-004","barcode":"7891000100042","name":"Aceite 20 L","category":"Alimentos","warehouse":"Depósito Sur","cost":198000,"price":245000,"stock":9,"min_stock":12,"sold_month":76,"supplier":"PROV-002"},
+    {"sku":"PRD-005","barcode":"7891000100059","name":"Fideos 800 g caja x24","category":"Alimentos","warehouse":"Depósito Central","cost":132000,"price":168000,"stock":140,"min_stock":40,"sold_month":210,"supplier":"PROV-005"},
+    {"sku":"PRD-006","barcode":"7891000100066","name":"Yerba 5 kg","category":"Alimentos","warehouse":"Depósito Sur","cost":131000,"price":167000,"stock":52,"min_stock":20,"sold_month":88,"supplier":"PROV-005"},
+    {"sku":"PRD-007","barcode":"7891000100073","name":"Sal 50 kg","category":"Alimentos","warehouse":"Depósito Central","cost":71000,"price":92000,"stock":31,"min_stock":15,"sold_month":44,"supplier":"PROV-002"},
+    {"sku":"PRD-008","barcode":"7891000100080","name":"Gaseosa 2.5 L caja x12","category":"Bebidas","warehouse":"Depósito Sur","cost":218000,"price":276000,"stock":73,"min_stock":30,"sold_month":165,"supplier":"PROV-004"},
+    {"sku":"PRD-009","barcode":"7891000100097","name":"Detergente 15 kg","category":"Limpieza","warehouse":"Depósito Central","cost":156000,"price":198000,"stock":6,"min_stock":10,"sold_month":39,"supplier":"PROV-003"},
+    {"sku":"PRD-010","barcode":"7891000100103","name":"Papel higiénico caja x48","category":"Limpieza","warehouse":"Depósito Central","cost":178000,"price":224000,"stock":95,"min_stock":35,"sold_month":142,"supplier":"PROV-003"},
+    {"sku":"PRD-011","barcode":"7891000100110","name":"Leche en polvo 25 kg","category":"Lácteos","warehouse":"Depósito Norte","cost":1010000,"price":1250000,"stock":18,"min_stock":8,"sold_month":27,"supplier":"PROV-001"},
+    {"sku":"PRD-012","barcode":"7891000100127","name":"Tomate triturado caja x24","category":"Alimentos","warehouse":"Depósito Central","cost":169000,"price":212000,"stock":47,"min_stock":20,"sold_month":58,"supplier":"PROV-005"},
+    {"sku":"PRD-013","barcode":"7891000100134","name":"Cerveza 1 L caja x12","category":"Bebidas","warehouse":"Depósito Sur","cost":264000,"price":318000,"stock":58,"min_stock":24,"sold_month":96,"supplier":"PROV-004"},
+    {"sku":"PRD-014","barcode":"7891000100141","name":"Shampoo 750 ml caja x12","category":"Higiene","warehouse":"Depósito Central","cost":189000,"price":236000,"stock":33,"min_stock":15,"sold_month":51,"supplier":"PROV-003"},
+    {"sku":"PRD-015","barcode":"7891000100158","name":"Lavandina 5 L caja x8","category":"Limpieza","warehouse":"Depósito Central","cost":84000,"price":109000,"stock":110,"min_stock":40,"sold_month":118,"supplier":"PROV-003"},
+    {"sku":"PRD-016","barcode":"7891000100165","name":"Aceite de girasol 1 L x12","category":"Alimentos","warehouse":"Depósito Central","cost":142000,"price":178000,"stock":68,"min_stock":24,"sold_month":94,"supplier":"PROV-002"},
+    {"sku":"PRD-017","barcode":"7891000100172","name":"Atún 170 g x48","category":"Alimentos","warehouse":"Depósito Central","cost":276000,"price":342000,"stock":42,"min_stock":18,"sold_month":77,"supplier":"PROV-005"},
+    {"sku":"PRD-018","barcode":"7891000100189","name":"Galletitas surtidas x60","category":"Alimentos","warehouse":"Depósito Central","cost":118000,"price":152000,"stock":105,"min_stock":30,"sold_month":156,"supplier":"PROV-005"},
+    {"sku":"PRD-019","barcode":"7891000100196","name":"Jugo en polvo x24","category":"Bebidas","warehouse":"Depósito Sur","cost":96000,"price":126000,"stock":89,"min_stock":25,"sold_month":134,"supplier":"PROV-004"},
+    {"sku":"PRD-020","barcode":"7891000100202","name":"Agua mineral 500 ml x12","category":"Bebidas","warehouse":"Depósito Sur","cost":74000,"price":98000,"stock":156,"min_stock":40,"sold_month":203,"supplier":"PROV-004"},
+    {"sku":"PRD-021","barcode":"7891000100219","name":"Jabón en polvo 800 g x12","category":"Limpieza","warehouse":"Depósito Central","cost":124000,"price":158000,"stock":72,"min_stock":25,"sold_month":88,"supplier":"PROV-003"},
+    {"sku":"PRD-022","barcode":"7891000100226","name":"Limpiador piso 5 L x4","category":"Limpieza","warehouse":"Depósito Central","cost":138000,"price":176000,"stock":45,"min_stock":18,"sold_month":62,"supplier":"PROV-003"},
+    {"sku":"PRD-023","barcode":"7891000100233","name":"Crema dental 90 g x24","category":"Higiene","warehouse":"Depósito Central","cost":196000,"price":248000,"stock":54,"min_stock":20,"sold_month":73,"supplier":"PROV-003"},
+    {"sku":"PRD-024","barcode":"7891000100240","name":"Desodorante 150 ml x12","category":"Higiene","warehouse":"Depósito Central","cost":212000,"price":268000,"stock":28,"min_stock":12,"sold_month":41,"supplier":"PROV-003"},
+    {"sku":"PRD-025","barcode":"7891000100257","name":"Queso cremoso 5 kg","category":"Lácteos","warehouse":"Depósito Norte","cost":184000,"price":228000,"stock":22,"min_stock":10,"sold_month":36,"supplier":"PROV-001"}
+  ],
+
+  "customers": [
+    {"id":"CLI-001","name":"Comercial Itapúa S.A.","city":"Encarnación","segment":"Mayorista","seller":"Pedro Vera","phone":"+595 981 123 456","email":"compras@itapua.com.py","debt":3250000,"credit_limit":50000000,"branch":"SUC-002","since":"2018-03-12"},
+    {"id":"CLI-002","name":"Distribuidora Mburucuyá","city":"Asunción","segment":"Mayorista","seller":"Sofía Ruiz","phone":"+595 982 555 100","email":"contacto@mburucuya.com.py","debt":1850000,"credit_limit":30000000,"branch":"SUC-001","since":"2019-07-01"},
+    {"id":"CLI-003","name":"Ferretería El Obrero","city":"Luque","segment":"Minorista","seller":"Jorge Galeano","phone":"+595 983 444 221","email":"ferreteria@obrero.com.py","debt":0,"credit_limit":15000000,"branch":"SUC-001","since":"2020-02-15"},
+    {"id":"CLI-004","name":"Mayorista Central SRL","city":"Asunción","segment":"Mayorista","seller":"Pedro Vera","phone":"+595 984 777 888","email":"ventas@mayoristacentral.com.py","debt":9400000,"credit_limit":60000000,"branch":"SUC-001","since":"2017-11-20"},
+    {"id":"CLI-005","name":"Almacén Doña Rosa","city":"Capiatá","segment":"Minorista","seller":"Sofía Ruiz","phone":"+595 985 222 330","email":"rosita@gmail.com","debt":420000,"credit_limit":8000000,"branch":"SUC-001","since":"2021-05-10"},
+    {"id":"CLI-006","name":"Constructora Acuario SA","city":"Asunción","segment":"Corporativo","seller":"Óscar Peralta","phone":"+595 986 111 909","email":"compras@acuario.com.py","debt":12750000,"credit_limit":80000000,"branch":"SUC-001","since":"2016-09-01"},
+    {"id":"CLI-007","name":"Kiosco La Esquina","city":"San Lorenzo","segment":"Minorista","seller":"Jorge Galeano","phone":"+595 987 321 654","email":"kiosco@esquina.com","debt":0,"credit_limit":3000000,"branch":"SUC-001","since":"2022-01-18"},
+    {"id":"CLI-008","name":"Supermercado Vista Alegre","city":"Lambaré","segment":"Minorista","seller":"Óscar Peralta","phone":"+595 988 909 080","email":"admin@vistaalegre.com.py","debt":5600000,"credit_limit":45000000,"branch":"SUC-001","since":"2018-10-22"},
+    {"id":"CLI-009","name":"Despensa San Miguel","city":"Itá","segment":"Minorista","seller":"Sofía Ruiz","phone":"+595 989 101 112","email":"sanmiguel@gmail.com","debt":1100000,"credit_limit":6000000,"branch":"SUC-001","since":"2020-08-05"},
+    {"id":"CLI-010","name":"Comercio Guaraní SRL","city":"Villarrica","segment":"Mayorista","seller":"Pedro Vera","phone":"+595 990 213 214","email":"guarani@comercio.com.py","debt":7300000,"credit_limit":35000000,"branch":"SUC-002","since":"2019-04-11"},
+    {"id":"CLI-011","name":"Supermercado del Este","city":"Ciudad del Este","segment":"Mayorista","seller":"Óscar Peralta","phone":"+595 991 100 200","email":"compras@supereste.com.py","debt":2150000,"credit_limit":40000000,"branch":"SUC-003","since":"2018-06-15"},
+    {"id":"CLI-012","name":"Mercado Central","city":"Asunción","segment":"Corporativo","seller":"Pedro Vera","phone":"+595 992 300 400","email":"compras@mercadocentral.com.py","debt":4800000,"credit_limit":70000000,"branch":"SUC-001","since":"2015-03-22"},
+    {"id":"CLI-013","name":"Autoservicio Bella Vista","city":"Ciudad del Este","segment":"Minorista","seller":"Óscar Peralta","phone":"+595 993 500 600","email":"bellavista@gmail.com","debt":680000,"credit_limit":10000000,"branch":"SUC-003","since":"2021-09-02"},
+    {"id":"CLI-014","name":"Distribuidora del Sur","city":"Pilar","segment":"Mayorista","seller":"Sofía Ruiz","phone":"+595 994 700 800","email":"ventas@delsur.com.py","debt":2900000,"credit_limit":25000000,"branch":"SUC-002","since":"2020-11-14"},
+    {"id":"CLI-015","name":"Almacén Los Amigos","city":"Encarnación","segment":"Minorista","seller":"Pedro Vera","phone":"+595 995 900 100","email":"amigos@gmail.com","debt":0,"credit_limit":5000000,"branch":"SUC-002","since":"2023-01-30"}
+  ],
+
+  "employees": [
+    {"id":"EMP-001","name":"María González","position":"Gerenta Comercial","department":"Gerencia","email":"mgonzalez@andina.com.py","salary":15000000,"hire_date":"2019-03-01","branch":"SUC-001","phone":"+595 981 100 001"},
+    {"id":"EMP-002","name":"Carlos Ramírez","position":"Contador","department":"Administración","email":"cramirez@andina.com.py","salary":8500000,"hire_date":"2020-07-15","branch":"SUC-001","phone":"+595 981 100 002"},
+    {"id":"EMP-003","name":"Ana López","position":"Jefa de Depósito","department":"Logística","email":"alopez@andina.com.py","salary":6800000,"hire_date":"2021-01-10","branch":"SUC-001","phone":"+595 981 100 003"},
+    {"id":"EMP-004","name":"Pedro Vera","position":"Vendedor Senior","department":"Ventas","email":"pvera@andina.com.py","salary":7200000,"hire_date":"2018-05-02","branch":"SUC-002","phone":"+595 981 100 004"},
+    {"id":"EMP-005","name":"Lucía Fernández","position":"Analista de Compras","department":"Compras","email":"lfernandez@andina.com.py","salary":5900000,"hire_date":"2022-02-01","branch":"SUC-001","phone":"+595 981 100 005"},
+    {"id":"EMP-006","name":"Diego Cáceres","position":"Chofer de Reparto","department":"Logística","email":"dcaceres@andina.com.py","salary":3800000,"hire_date":"2021-09-13","branch":"SUC-002","phone":"+595 981 100 006"},
+    {"id":"EMP-007","name":"Sofía Ruiz","position":"Vendedora","department":"Ventas","email":"sruiz@andina.com.py","salary":5400000,"hire_date":"2022-06-20","branch":"SUC-001","phone":"+595 981 100 007"},
+    {"id":"EMP-008","name":"Jorge Galeano","position":"Vendedor","department":"Ventas","email":"jgaleano@andina.com.py","salary":5100000,"hire_date":"2023-03-06","branch":"SUC-001","phone":"+595 981 100 008"},
+    {"id":"EMP-009","name":"Raquel Ortiz","position":"Cobradora","department":"Administración","email":"rortiz@andina.com.py","salary":3600000,"hire_date":"2022-11-01","branch":"SUC-001","phone":"+595 981 100 009"},
+    {"id":"EMP-010","name":"Hugo Benítez","position":"Chofer de Reparto","department":"Logística","email":"hbenitez@andina.com.py","salary":3700000,"hire_date":"2023-01-16","branch":"SUC-003","phone":"+595 981 100 010"},
+    {"id":"EMP-011","name":"Valeria Méndez","position":"Asistente Administrativa","department":"Administración","email":"vmendez@andina.com.py","salary":3900000,"hire_date":"2023-08-21","branch":"SUC-001","phone":"+595 981 100 011"},
+    {"id":"EMP-012","name":"Óscar Peralta","position":"Vendedor","department":"Ventas","email":"operalta@andina.com.py","salary":4900000,"hire_date":"2024-04-01","branch":"SUC-003","phone":"+595 981 100 012"},
+    {"id":"EMP-013","name":"Natalia Aquino","position":"Community Manager","department":"Marketing","email":"naquino@andina.com.py","salary":4200000,"hire_date":"2023-05-15","branch":"SUC-001","phone":"+595 981 100 013"},
+    {"id":"EMP-014","name":"Roberto Giménez","position":"Gerente de Sucursal","department":"Gerencia","email":"rgimenez@andina.com.py","salary":9500000,"hire_date":"2019-08-20","branch":"SUC-003","phone":"+595 981 100 014"},
+    {"id":"EMP-015","name":"Patricia Ríos","position":"Atención al Cliente","department":"Ventas","email":"prios@andina.com.py","salary":4000000,"hire_date":"2024-02-05","branch":"SUC-001","phone":"+595 981 100 015"}
+  ],
+
+  "expenses": [
+    {"category":"Salarios","amount":48000000,"day_offset":2,"description":"Nómina mensual","branch":"SUC-001"},
+    {"category":"Alquiler","amount":8500000,"day_offset":4,"description":"Galpón central y oficinas","branch":"SUC-001"},
+    {"category":"Logística","amount":6200000,"day_offset":-1,"description":"Combustible y fletes","branch":"SUC-001"},
+    {"category":"Logística","amount":1800000,"day_offset":-9,"description":"Mantenimiento de flota","branch":"SUC-001"},
+    {"category":"Logística","amount":2600000,"day_offset":6,"description":"Flete semanal contratado","branch":"SUC-002"},
+    {"category":"Servicios","amount":3100000,"day_offset":-3,"description":"Luz, agua e internet","branch":"SUC-001"},
+    {"category":"Servicios","amount":750000,"day_offset":-12,"description":"Telefonía móvil","branch":"SUC-001"},
+    {"category":"Marketing","amount":2400000,"day_offset":-5,"description":"Campaña de radio y redes","branch":"SUC-001"},
+    {"category":"Marketing","amount":900000,"day_offset":-14,"description":"Publicidad digital","branch":"SUC-001"},
+    {"category":"Impuestos","amount":9800000,"day_offset":-7,"description":"IVA e impuesto a la renta","branch":"SUC-001"},
+    {"category":"Alquiler","amount":3200000,"day_offset":3,"description":"Alquiler sucursal Encarnación","branch":"SUC-002"},
+    {"category":"Alquiler","amount":3800000,"day_offset":5,"description":"Alquiler sucursal CDE","branch":"SUC-003"},
+    {"category":"Salarios","amount":12000000,"day_offset":2,"description":"Nómina sucursal CDE","branch":"SUC-003"},
+    {"category":"Mantenimiento","amount":1400000,"day_offset":-6,"description":"Reparación de cámara frigorífica","branch":"SUC-001"},
+    {"category":"Seguros","amount":2800000,"day_offset":-8,"description":"Seguro de mercadería","branch":"SUC-001"}
+  ],
+
+  "suppliers": [
+    {"id":"PROV-001","name":"Lácteos del Norte S.A.","category":"Lácteos","debt":12500000,"contact":"+595 21 555 0100","email":"ventas@lacteosnorte.com.py","city":"Asunción"},
+    {"id":"PROV-002","name":"Molinos del Este","category":"Alimentos","debt":8200000,"contact":"+595 21 555 0200","email":"contacto@molinoseste.com.py","city":"Asunción"},
+    {"id":"PROV-003","name":"Higiene Total SRL","category":"Limpieza","debt":3400000,"contact":"+595 21 555 0300","email":"info@higienetotal.com.py","city":"Luque"},
+    {"id":"PROV-004","name":"Bebidas Unidas","category":"Bebidas","debt":15800000,"contact":"+595 21 555 0400","email":"pedidos@bebidasunidas.com.py","city":"Asunción"},
+    {"id":"PROV-005","name":"Alimentos Paraguay","category":"Alimentos","debt":0,"contact":"+595 21 555 0500","email":"ventas@alimentosparaguay.com.py","city":"San Lorenzo"},
+    {"id":"PROV-006","name":"Envases del Sur","category":"Packaging","debt":1900000,"contact":"+595 21 555 0600","email":"envases@delsur.com.py","city":"Encarnación"},
+    {"id":"PROV-007","name":"Distribuidora Central","category":"Mixto","debt":4200000,"contact":"+595 21 555 0700","email":"central@distribuidora.com.py","city":"Asunción"}
+  ],
+
+  "purchase_orders": [
+    {"id":"OC-0001","supplier":"Lácteos del Norte S.A.","product":"Leche en polvo 25 kg","quantity":10,"total":10100000,"status":"pendiente","expected_offset":5,"branch":"SUC-001"},
+    {"id":"OC-0002","supplier":"Higiene Total SRL","product":"Detergente 15 kg","quantity":15,"total":2340000,"status":"pendiente","expected_offset":3,"branch":"SUC-001"},
+    {"id":"OC-0003","supplier":"Bebidas Unidas","product":"Gaseosa 2.5 L caja x12","quantity":30,"total":6540000,"status":"recibido","expected_offset":-2,"branch":"SUC-001"},
+    {"id":"OC-0004","supplier":"Molinos del Este","product":"Harina 25 kg","quantity":40,"total":3120000,"status":"pendiente","expected_offset":8,"branch":"SUC-002"},
+    {"id":"OC-0005","supplier":"Alimentos Paraguay","product":"Fideos 800 g caja x24","quantity":50,"total":6600000,"status":"pendiente","expected_offset":6,"branch":"SUC-001"},
+    {"id":"OC-0006","supplier":"Distribuidora Central","product":"Azúcar 50 kg","quantity":35,"total":5320000,"status":"pendiente","expected_offset":4,"branch":"SUC-001"}
+  ],
+
+  "bank_accounts": [
+    {"bank":"Banco Nacional","account":"Cta. Corriente 1234-5","balance":185000000,"currency":"PYG"},
+    {"bank":"Banco Itaú","account":"Cta. Ahorro 7788-2","balance":62300000,"currency":"PYG"},
+    {"bank":"Banco GNB","account":"Cta. Corriente 4455-1","balance":41800000,"currency":"PYG"},
+    {"bank":"Banco Continental","account":"Cta. Corriente 9900-3","balance":28500000,"currency":"PYG"},
+    {"bank":"Banco Atlas","account":"Cta. Ahorro 3322-8","balance":15200000,"currency":"PYG"}
+  ],
+
+  "budget": {
+    "month_revenue_target": 180000000,
+    "expenses": { "Salarios":60000000, "Alquiler":15500000, "Logística":12000000, "Servicios":4500000, "Marketing":4000000, "Impuestos":9500000, "Mantenimiento":2000000, "Seguros":2800000 }
+  },
+
+  "meetings": [],
+
+  "invoices": [
+    {"id":"FAC-0001","customer":"Comercial Itapúa S.A.","day_offset":0,"amount":4250000,"quantity":18,"items":[{"sku":"PRD-001","qty":10},{"sku":"PRD-005","qty":8}],"status":"paid","due_offset":15,"seller":"Pedro Vera"},
+    {"id":"FAC-0002","customer":"Distribuidora Mburucuyá","day_offset":0,"amount":1850000,"quantity":7,"items":[{"sku":"PRD-003","qty":4},{"sku":"PRD-006","qty":3}],"status":"pending","due_offset":15,"seller":"Sofía Ruiz"},
+    {"id":"FAC-0003","customer":"Ferretería El Obrero","day_offset":0,"amount":975000,"quantity":4,"items":[{"sku":"PRD-008","qty":4}],"status":"paid","due_offset":15,"seller":"Jorge Galeano"},
+    {"id":"FAC-0004","customer":"Constructora Acuario SA","day_offset":-25,"amount":3200000,"quantity":14,"items":[{"sku":"PRD-002","qty":14}],"status":"pending","due_offset":-10,"seller":"Óscar Peralta"},
+    {"id":"FAC-0005","customer":"Mayorista Central SRL","day_offset":-18,"amount":1450000,"quantity":6,"items":[{"sku":"PRD-011","qty":2},{"sku":"PRD-004","qty":4}],"status":"pending","due_offset":-3,"seller":"Pedro Vera"}
+  ],
+
+  "cash_movements": [
+    {"day_offset":0,"type":"ingreso","category":"Cobranza","amount":3850000,"description":"Cobro FAC-0001"},
+    {"day_offset":0,"type":"egreso","category":"Proveedor","amount":2200000,"description":"Pago parcial Lácteos del Norte"},
+    {"day_offset":-1,"type":"ingreso","category":"Venta mostrador","amount":875000,"description":"Ventas del día"},
+    {"day_offset":-1,"type":"egreso","category":"Combustible","amount":420000,"description":"Carga de flota"}
+  ],
+
+  "payroll": [
+    {"period":"2026-09","total":48000000,"employees":12,"status":"pagado"},
+    {"period":"2026-08","total":48000000,"employees":12,"status":"pagado"},
+    {"period":"2026-07","total":47500000,"employees":12,"status":"pagado"}
+  ],
+
+  "sales_history": {
+    "days_back": 730,
+    "max_invoices_per_day": 4,
+    "extra_chance": 0.35,
+    "amount_step": 250000,
+    "amount_min_step": 2,
+    "amount_max_steps": 40,
+    "qty_per_invoice_min": 3,
+    "qty_per_invoice_max": 25,
+    "paid_ratio": 0.85,
+    "seed": 2026,
+    "next_id": 6,
+    "payment_methods": ["contado","transferencia","crédito 30 días"],
+    "cost_ratio_min": 0.62,
+    "cost_ratio_max": 0.88
+  }
+}
