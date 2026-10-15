@@ -23,16 +23,17 @@ type HistoryEntry struct {
 
 // SynthesisRequest es lo que el cliente envía al Synthesizer
 type SynthesisRequest struct {
-	SessionID       string                 `json:"session_id,omitempty"`
-	OriginalMessage string                 `json:"original_message" binding:"required"`
-	Intent          string                 `json:"intent" binding:"required"`
-	FunctionName    string                 `json:"function_name,omitempty"`
-	Parameters      map[string]interface{} `json:"parameters,omitempty"`
-	DataSlots       map[string]interface{} `json:"data_slots,omitempty"` // null = falta
-	RawData         string                 `json:"raw_data,omitempty"`
-	ErrorCode       string                 `json:"error_code,omitempty"`
-	Confidence      float64                `json:"confidence,omitempty"`
-	History         []HistoryEntry         `json:"history,omitempty"`
+	SessionID         string                 `json:"session_id,omitempty"`
+	OriginalMessage   string                 `json:"original_message" binding:"required"`
+	Intent            string                 `json:"intent" binding:"required"`
+	FunctionName      string                 `json:"function_name,omitempty"`
+	IsConversational  bool                   `json:"is_conversational,omitempty"` // <-- ¡AGRÉGALO!
+	Parameters        map[string]interface{} `json:"parameters,omitempty"`
+	DataSlots         map[string]interface{} `json:"data_slots,omitempty"`
+	RawData           string                 `json:"raw_data,omitempty"`
+	ErrorCode         string                 `json:"error_code,omitempty"`
+	Confidence        float64                `json:"confidence,omitempty"`
+	History           []HistoryEntry         `json:"history,omitempty"`
 }
 
 // NormalizeRequest es lo que el cliente envía al Normalizer

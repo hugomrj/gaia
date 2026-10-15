@@ -147,10 +147,10 @@ func (p *Planner) buildSystemPrompt(
 }
 
 ## PRIORIDAD 1 — data_slots pendientes
-
 Si "Función pendiente" NO es "(ninguna)" y hay slots en null:
   → Tu tarea es SOLO asignar el valor del mensaje al slot que encaje.
   → MANTENÉ la función pendiente. NO la cambies.
+  → Si el usuario menciona múltiples datos en un solo mensaje, actualiza TODOS los slots nulos que coincidan semánticamente. No omitas ninguno (ej: si dice "el jueves a las 3", llena tanto "fecha" como "hora").
   → Usá la CLAVE EXACTA del slot.
   → Valor CRUDO: "el lunes" queda "el lunes". No normalices.
   → is_conversational: false.
@@ -165,9 +165,10 @@ Si NO hay función pendiente, ignorá esta sección y seguí con PRIORIDAD 2.
   → is_conversational: true
   → obtener_saludo | obtener_agradecimiento | obtener_despedida | obtener_info_bot | obtener_mi_perfil
   → confidence 1.0.
-- TOPIC (solo un sustantivo, sin acción ni criterio): "facturacion", "clientes".
+- TOPIC (solo un sustantivo, sin acción ni criterio): "facturacion", "clientes", "inventario".
+  → ⚠️ REGLA ABSOLUTA: function_name DEBE ser "" (string vacío). PROHIBIDO agregarle verbos como "obtener_" o "listar_".
   → is_conversational: false
-  → function_name "", parameters {"tema":"<topic>"}, confidence 0.5.
+  → parameters: {"tema":"<topic>"}, confidence 0.5.
 - PETICIÓN: cualquier otra cosa (verbo, pregunta, criterio específico).
   → is_conversational: false
 - AMBIGUO sin contexto ("dame eso", "che dame eso"):
