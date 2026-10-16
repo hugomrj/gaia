@@ -97,40 +97,79 @@ Respuesta:
 
     {"name":"GAIA","status":"running","version":"0.1.0"}
 
+
+
+
+
+
+
 ### POST /v1/analyze
 
-El Planner analiza el mensaje del usuario y devuelve intent + función +
-parámetros.
+El Planner analiza el mensaje del usuario y devuelve la intención, la
+función y los parámetros. También informa si el mensaje es conversacional.
 
 Request:
 
     {
       "session_id": "abc-123",
       "message": "cuanto facture hoy",
-      "collected_data": null,
+      "function_name": "obtener_facturacion_diaria",
+      "data_slots": {"fecha": null},
       "history": []
     }
+
+Los campos `function_name` y `data_slots` son opcionales. Se usan cuando
+el cliente ya inició una conversación con una función pendiente que
+espera datos (slot-filling).
 
 Response:
 
     {
-      "intent": "query_billing",
-      "function_name": "get_daily_billing",
-      "parameters": {"date": "hoy"},
+      "intent": "El usuario quiere saber cuánto se facturó hoy",
+      "is_conversational": false,
+      "function_name": "obtener_facturacion_diaria",
+      "parameters": {"fecha": "hoy"},
       "confidence": 0.95,
       "original_input": "cuanto facture hoy"
     }
 
+Campos:
+
+- `intent` — frase en castellano que describe qué quiere el usuario.
+- `is_conversational` — `true` si es charla casual (saludo, agradecimiento,
+  despedida, info del bot, mi perfil). `false` en cualquier otro caso.
+- `function_name` — nombre de función en castellano, snake_case.
+- `parameters` — claves en castellano, valores crudos sin normalizar.
+- `confidence` — 0.0 a 1.0.
+
+Ejemplo conversacional:
+
+    {
+      "intent": "El usuario saluda",
+      "is_conversational": true,
+      "function_name": "obtener_saludo",
+      "parameters": {},
+      "confidence": 1.0,
+      "original_input": "hola"
+    }
+
+
+
+
+
+
 ### POST /v1/normalize
 
-Convierte valores crudos a formato estándar (opcional).
+Convierte valores crudos a formato estándar (opcional). Determinístico,
+sin LLM. El cliente decide si lo usa o no.
 
 Request:
 
     {
       "parameters": {
-        "date": "el lunes",
-        "amount": "150 mil"
+        "fecha": "el lunes",
+        "monto": "150 mil",
+        "periodo": "octubre de 2025"
       }
     }
 
@@ -138,40 +177,251 @@ Response:
 
     {
       "parameters": {
-        "date": "2026-10-19",
-        "amount": 150000
+        "fecha": "2026-10-19",
+        "monto": 150000,
+        "periodo": {"from": "2025-10-01", "to": "2025-10-31"}
       },
-      "normalized": ["date", "amount"],
+      "normalized": ["fecha", "monto", "periodo"],
       "not_normalized": []
     }
+
+Casos que maneja:
+
+- **Fechas:** `hoy`, `ayer`, `hace 3 días`, `el lunes`, `15 de octubre`,
+  `15/10/2026`, `2026-10-15`.
+- **Períodos:** `este mes`, `el mes pasado`, `octubre`, `2026`,
+  `octubre de 2025`. Devuelve `{from, to}`.
+- **Números:** `150 mil` → `150000`, `1.5M` → `1500000`,
+  `1.500,50` → `1500.50` (formato europeo).
+- **Monedas:** `150000 Gs` → `150000`.
+- **Booleanos:** `sí`, `no`, `true`, `false` (solo si el campo lo sugiere
+  por su nombre: `is_active`, `tiene_stock`).
+- **Cédulas:** se preservan como string, sin notación científica.
+
+Los campos que no se pudieron normalizar aparecen en `not_normalized`.
+
+
+
 
 ### POST /v1/synthesize
 
 El Synthesizer redacta la respuesta al usuario. Tiene 4 modos automáticos:
-conversation, clarify, respond, error.
+`conversation`, `clarify`, `respond`, `error`.
 
 Request:
 
     {
       "original_message": "cuanto facture hoy",
-      "intent": "query_billing",
-      "function_name": "get_daily_billing",
-      "parameters": {"date": "hoy"},
-      "raw_data": "150000",
+      "intent": "El usuario quiere saber cuánto se facturó hoy",
+      "is_conversational": false,
+      "function_name": "obtener_facturacion_diaria",
+      "parameters": {"fecha": "hoy"},
+      "data_slots": {},
+      "raw_data": "{\"type\":\"single\",\"label\":\"facturación del día\",\"data\":7075000,\"meta\":{\"unit\":\"Gs\"}}",
+      "confidence": 0.95,
       "history": []
     }
 
 Response:
 
     {
-      "response": "Hoy has facturado un total de 150.000 Gs.",
+      "response": "Hoy facturaste 7.075.000 Gs.",
       "history_entry": {
         "role": "assistant",
-        "summary": "respondí sobre query_billing",
-        "timestamp": "2026-10-14T10:30:00-03:00"
+        "summary": "obtener_facturacion_diaria(fecha=hoy)",
+        "timestamp": "2026-10-15T10:30:00-03:00"
       },
-      "mode": "respond"
+      "mode": "respond",
+      "data_slots": {},
+      "raw_data": "{\"type\":\"single\",...}"
     }
+
+Campos del request:
+
+- `is_conversational` — determina si el modo es `conversation`.
+- `data_slots` — si hay claves con `null`, el modo es `clarify`.
+- `raw_data` — envelope JSON (ver siguiente sección). Si está vacío y no
+  hay slots nulos, el modo es `conversation`.
+- `error_code` — si está presente, el modo es `error`.
+
+El `history_entry.summary` guarda la función y sus parámetros en formato
+`funcion(param=valor)`. El cliente debe persistirlo tal cual y enviarlo
+en el siguiente request. El Planner lo usa para continuidad.
+
+**Modos:**
+
+| Modo | Cuándo |
+|---|---|
+| `conversation` | `is_conversational: true` |
+| `clarify` | hay slots en null o confianza baja |
+| `respond` | hay `raw_data` válido |
+| `error` | hay `error_code` |
+
+
+
+
+### Slot-filling con `data_slots`
+
+`data_slots` es el estado de los datos que el usuario debe proporcionar
+para que una función pueda ejecutarse. Las claves las define el contrato
+de cada función en el cliente.
+
+Ejemplo con `agendar_reunion` (requiere `doctor` y `fecha`):
+
+Turno 1:
+
+    POST /v1/analyze
+    {"message": "quiero agendar una reunion"}
+
+    →
+    {
+      "function_name": "agendar_reunion",
+      "parameters": {},
+      "is_conversational": false
+    }
+
+El cliente sabe que `agendar_reunion` requiere `{doctor, fecha}`. Arma
+`data_slots: {doctor: null, fecha: null}` y pide los datos al usuario.
+
+Turno 2:
+
+    POST /v1/analyze
+    {
+      "message": "con el doctor ramirez",
+      "function_name": "agendar_reunion",
+      "data_slots": {"doctor": null, "fecha": null}
+    }
+
+    →
+    {
+      "function_name": "agendar_reunion",
+      "parameters": {"doctor": "ramirez"}
+    }
+
+El Planner respeta la función pendiente y asigna el valor al slot
+correcto. El cliente fusiona y actualiza `data_slots`.
+
+Cuando `data_slots` no tiene nulls, el cliente ejecuta la función.
+
+
+
+
+## Formato de datos del cliente (raw_data)
+
+El campo `raw_data` del Synthesizer es la respuesta del sistema empresarial
+hacia GAIA. Es la única vía por la que GAIA recibe información real.
+Para que el Synthesizer redacte bien, el cliente debe enviarlo en un
+formato uniforme.
+
+### Envelope estándar
+
+El cliente envía siempre un objeto JSON con esta estructura:
+
+    {
+      "type": "single" | "list" | "empty" | "error",
+      "label": "descripción corta de qué es el dato",
+      "data": <valor o lista o null>,
+      "meta": { ... }   // opcional
+    }
+
+### Reglas
+
+1. **Siempre JSON.** Nunca texto plano.
+2. **Siempre `label`.** Es lo que le dice al Synthesizer QUÉ es el dato.
+3. **`data` semántico.** Si es lista, cada item con claves claras.
+4. **`meta` opcional.** Para `unit`, `count`, `fecha`, `periodo`.
+5. **Nunca inventes campos.** Si no aplica, omitilo.
+
+### Tipos
+
+#### `single` — un solo valor
+
+    {
+      "type": "single",
+      "label": "facturación del día",
+      "data": 7075000,
+      "meta": { "unit": "Gs" }
+    }
+
+Si el valor tiene varias partes:
+
+    {
+      "type": "single",
+      "label": "resumen de facturación del mes",
+      "data": { "total": 7075000, "facturas": 522 },
+      "meta": { "unit": "Gs", "periodo": "2026-10" }
+    }
+
+#### `list` — múltiples registros
+
+    {
+      "type": "list",
+      "label": "clientes en Asunción",
+      "data": [
+        { "nombre": "Juan Pérez", "deuda": 150000 },
+        { "nombre": "María González", "deuda": 200000 }
+      ],
+      "meta": { "count": 2 }
+    }
+
+#### `empty` — sin resultados
+
+    {
+      "type": "empty",
+      "label": "clientes en Marte",
+      "data": null
+    }
+
+#### `error` — fallo controlado
+
+    {
+      "type": "error",
+      "label": "consulta de facturación",
+      "data": null,
+      "meta": { "message": "timeout db" }
+    }
+
+### Ejemplo completo del flujo
+
+1. El Planner devuelve `obtener_facturacion_diaria` con `{"fecha":"hoy"}`.
+2. El cliente ejecuta la función real.
+3. El cliente arma el envelope:
+
+        {
+          "type": "single",
+          "label": "facturación del día",
+          "data": 7075000,
+          "meta": { "unit": "Gs", "fecha": "2026-10-15" }
+        }
+
+4. Lo envía como `raw_data` (string JSON) al Synthesizer.
+5. El Synthesizer responde:
+
+        "Hoy facturaste 7.075.000 Gs."
+
+### Qué NO enviar
+
+- Texto libre: `"La facturación de hoy fue 7075000 Gs."`
+- Objetos sin `label`: `{"data": 7075000}`
+- JSON sin `type`: `{"total": 7075000}`
+
+Aunque el Synthesizer es tolerante a estos formatos (modo legacy), el
+envelope estándar es el único que garantiza que el LLM entienda qué es
+cada dato sin ambigüedad.
+
+### Relación con el historial
+
+El `history_entry` que devuelve el Synthesizer guarda:
+
+    "obtener_facturacion_diaria(fecha=hoy)"
+
+El cliente debe persistirlo tal cual en el historial y enviarlo en el
+siguiente request. El Planner lo usa para inferir continuidad
+("y ayer?" → `fecha=ayer`).
+
+
+
+
 
 ## Panel admin
 

@@ -4,7 +4,7 @@ package normalizer
 import (
 	"fmt"
 	"log"
-	"strconv"  
+	"strconv"
 	"strings"
 	"time"
 )
@@ -30,24 +30,24 @@ func (n *Normalizer) SetTimezone(tz string) {
 // Normalize toma un map de parámetros y devuelve un nuevo map con los valores
 // normalizados cuando sea posible. No modifica el original.
 func (n *Normalizer) Normalize(params map[string]interface{}) (map[string]interface{}, []string, []string) {
-	now := n.currentTime()
-	result := make(map[string]interface{}, len(params))
-	var normalized, notNormalized []string
+	ahora := n.horaActual()
+	resultado := make(map[string]interface{}, len(params))
+	var normalizados, noNormalizados []string
 
-	for key, raw := range params {
-		newValue, changed := n.normalizeValue(key, raw, now)
-		result[key] = newValue
-		if changed {
-			normalized = append(normalized, key)
+	for clave, crudo := range params {
+		nuevoValor, cambio := n.normalizarValor(clave, crudo, ahora)
+		resultado[clave] = nuevoValor
+		if cambio {
+			normalizados = append(normalizados, clave)
 		} else {
-			notNormalized = append(notNormalized, key)
+			noNormalizados = append(noNormalizados, clave)
 		}
 	}
 
-	return result, normalized, notNormalized
+	return resultado, normalizados, noNormalizados
 }
 
-func (n *Normalizer) currentTime() time.Time {
+func (n *Normalizer) horaActual() time.Time {
 	loc, err := time.LoadLocation(n.timezone)
 	if err != nil {
 		log.Printf("Normalizer: timezone inválida %q, usando UTC", n.timezone)
@@ -56,66 +56,64 @@ func (n *Normalizer) currentTime() time.Time {
 	return time.Now().In(loc)
 }
 
-// normalizeValue intenta normalizar un valor según el nombre del campo y su contenido.
-func (n *Normalizer) normalizeValue(key string, raw interface{}, now time.Time) (interface{}, bool) {
+// normalizarValor intenta normalizar un valor según el nombre del campo y su contenido.
+func (n *Normalizer) normalizarValor(clave string, crudo interface{}, ahora time.Time) (interface{}, bool) {
 	// Caso especial: cédula/RUC
 	// - Si es string: se respeta tal cual (no se toca)
 	// - Si es número: se convierte a string sin notación científica
-	if isCedulaField(key) {
-		if s, ok := raw.(string); ok {
+	if esCampoCedula(clave) {
+		if s, ok := crudo.(string); ok {
 			return s, false // sin cambios
 		}
-		return numberToString(raw), true
+		return numeroAString(crudo), true
 	}
 
-	str, isString := raw.(string)
-	if !isString {
-		return raw, false
+	str, esString := crudo.(string)
+	if !esString {
+		return crudo, false
 	}
 
-	trimmed := strings.TrimSpace(str)
-	if trimmed == "" {
-		return raw, false
+	recortado := strings.TrimSpace(str)
+	if recortado == "" {
+		return crudo, false
 	}
 
-	lower := strings.ToLower(trimmed)
+	min := strings.ToLower(recortado)
 
 	// 1. Booleanos (solo si el campo lo indica)
-	if isBooleanField(key) {
-		if b, ok := parseBoolean(lower); ok {
+	if esCampoBooleano(clave) {
+		if b, ok := parseBoolean(min); ok {
 			return b, true
 		}
 	}
 
 	// 2. Fechas / períodos
-	if isDateField(key) || looksLikeDate(lower) {
-		if v, ok := parseDate(trimmed, now); ok {
+	if esCampoFecha(clave) || pareceFecha(min) {
+		if v, ok := parsearFecha(recortado, ahora); ok {
 			return v, true
 		}
-		if v, ok := parsePeriod(lower, now); ok {
+		if v, ok := parsearPeriodo(min, ahora); ok {
 			return v, true
 		}
 	}
 
 	// 3. Monedas / números
-	if isMoneyField(key) || looksLikeMoney(trimmed) {
-		if v, ok := parseMoney(trimmed); ok {
+	if esCampoMoneda(clave) || pareceMoneda(recortado) {
+		if v, ok := parsearMoneda(recortado); ok {
 			return v, true
 		}
 	}
-	if isNumberField(key) || looksLikeNumber(trimmed) {
-		if v, ok := parseNumber(trimmed); ok {
+	if esCampoNumero(clave) || pareceNumero(recortado) {
+		if v, ok := parsearNumero(recortado); ok {
 			return v, true
 		}
 	}
 
-	return raw, false
+	return crudo, false
 }
 
-
-
-// numberToString convierte un número a string sin notación científica.
-func numberToString(v interface{}) string {
+// numeroAString convierte un número a string sin notación científica.
+func numeroAString(v interface{}) string {
 	switch n := v.(type) {
 	case int:
 		return strconv.Itoa(n)
@@ -130,52 +128,51 @@ func numberToString(v interface{}) string {
 	return fmt.Sprintf("%v", v)
 }
 
-
 // ---------- Hints por nombre de campo ----------
 
-func isDateField(key string) bool {
-	k := strings.ToLower(key)
-	fields := []string{
+func esCampoFecha(clave string) bool {
+	k := strings.ToLower(clave)
+	campos := []string{
 		"date", "fecha", "period", "periodo", "from", "desde",
 		"to", "hasta", "start", "end", "inicio", "fin",
 	}
-	return containsAny(k, fields)
+	return contieneAlguno(k, campos)
 }
 
-func isNumberField(key string) bool {
-	k := strings.ToLower(key)
-	fields := []string{
+func esCampoNumero(clave string) bool {
+	k := strings.ToLower(clave)
+	campos := []string{
 		"amount", "monto", "cantidad", "quantity", "count", "qty",
 		"price", "precio", "saldo", "balance", "cost", "costo",
 	}
-	return containsAny(k, fields)
+	return contieneAlguno(k, campos)
 }
 
-func isMoneyField(key string) bool {
-	k := strings.ToLower(key)
-	fields := []string{"total", "monto_total", "importe", "subtotal"}
-	return containsAny(k, fields)
+func esCampoMoneda(clave string) bool {
+	k := strings.ToLower(clave)
+	campos := []string{"total", "monto_total", "importe", "subtotal"}
+	return contieneAlguno(k, campos)
 }
 
-func isCedulaField(key string) bool {
-	k := strings.ToLower(key)
-	fields := []string{"cedula", "documento", "document", "ci", "ruc", "dni", "id_number"}
-	return containsAny(k, fields)
+func esCampoCedula(clave string) bool {
+	k := strings.ToLower(clave)
+	campos := []string{"cedula", "documento", "document", "ci", "ruc", "dni", "id_number"}
+	return contieneAlguno(k, campos)
 }
 
-func isBooleanField(key string) bool {
-	k := strings.ToLower(key)
-	prefixes := []string{"is_", "has_", "tiene_", "es_", "esta_", "está_"}
-	for _, p := range prefixes {
+func esCampoBooleano(clave string) bool {
+	k := strings.ToLower(clave)
+	prefijos := []string{"is_", "has_", "tiene_", "es_", "esta_", "está_"}
+	for _, p := range prefijos {
 		if strings.HasPrefix(k, p) {
 			return true
 		}
 	}
-	exact := []string{"active", "enabled", "activo", "habilitado"}
-	return containsAny(k, exact)
+	exactos := []string{"active", "enabled", "activo", "habilitado"}
+	return contieneAlguno(k, exactos)
 }
 
-func containsAny(s string, subs []string) bool {
+func contieneAlguno(s string, subs []string) bool {
 	for _, sub := range subs {
 		if strings.Contains(s, sub) {
 			return true

@@ -19,8 +19,22 @@ const (
 	LowConfidenceThreshold = 0.7
 )
 
-var reMultiDot = regexp.MustCompile(`\.{2,}$`)
-var reNumber   = regexp.MustCompile(`\d{4,}`) // Números de 4+ dígitos (los relevantes)
+// Personality define el tono del asistente.
+// Cambiá SOLO este bloque para ajustar cómo responde GAIA.
+const Personality = `Eres GAIA, el asistente de un sistema empresarial.
+Hablás SIEMPRE en español, con tono cercano pero profesional.
+Sos directo: respondés sin vueltas, sin adornos innecesarios.
+NUNCA mencionás que sos una IA, ni que "sintetizás", ni que "recibís datos".
+NUNCA usás emojis.
+No hacés preguntas existenciales ni filosóficas.
+Tuteás al usuario (vos, tenés, podés).`
+
+// Regex
+var (
+	reMultiDot = regexp.MustCompile(`\.{2,}$`)
+	reNumber   = regexp.MustCompile(`\d{4,}`)
+	reNonDigit = regexp.MustCompile(`\D`)
+)
 
 type Synthesizer struct {
 	llm      providers.LLMProvider
@@ -40,10 +54,9 @@ func (s *Synthesizer) SetTimezone(tz string) {
 	}
 }
 
-
-
-
-
+/* ============================================================
+   SYNTHESIZE
+============================================================ */
 func (s *Synthesizer) Synthesize(
 	ctx context.Context,
 	req models.SynthesisRequest,
@@ -51,7 +64,7 @@ func (s *Synthesizer) Synthesize(
 
 	now := s.currentTime()
 
-	// 🛡️ BYPASS DE SEGURIDAD: Lógica fija, 0% alucinación, 0ms de latencia.
+	// 1. Bypass determinístico: fuera de alcance
 	if req.FunctionName == "obtener_fuera_alcance" {
 		return &models.SynthesisResponse{
 			Response:     "No puedo ayudarte con ese tema. Mi función es asistirte con facturación, clientes, stock o citas dentro del sistema.",
@@ -62,6 +75,7 @@ func (s *Synthesizer) Synthesize(
 		}, nil
 	}
 
+	// 2. Bypass determinístico: función no encontrada
 	if req.ErrorCode == "function_not_found" {
 		return &models.SynthesisResponse{
 			Response:     "No puedo ayudarte con esa solicitud específica. Puedo asistirte con facturación, clientes, stock o citas.",
@@ -72,31 +86,16 @@ func (s *Synthesizer) Synthesize(
 		}, nil
 	}
 
-	// 1. Determinar modo de forma directa y confiable
-	mode := "respond" // Por defecto
-	if req.IsConversational {
-		mode = "conversation"
-	} else if req.ErrorCode != "" {
-		mode = "error"
-	} else if req.RawData == "" {
-		// Si no hay datos y hay slots nulos o baja confianza, es clarificar
-		for _, v := range req.DataSlots {
-			if v == nil {
-				mode = "clarify"
-				break
-			}
-		}
-		if mode != "clarify" && req.Confidence < LowConfidenceThreshold {
-			mode = "clarify"
-		}
-	}
+	// 3. Determinar modo
+	mode := s.detectMode(req)
 
-	// 2. Payload limpio para el prompt
+	// 4. Preparar payload
 	payload := req.RawData
 	if mode == "respond" && req.RawData != "" {
 		payload = extractPayload(req.RawData)
 	}
 
+	// 5. Construir prompt
 	systemPrompt := s.buildSystemPrompt(req, mode, now, payload)
 
 	messages := []providers.Message{
@@ -115,9 +114,9 @@ func (s *Synthesizer) Synthesize(
 	content := strings.TrimSpace(llmResponse.Content)
 	content = reMultiDot.ReplaceAllString(content, ".")
 
-	// 3. Guard contra alucinación de números (solo en modo respond)
+	// 6. Guard de números (solo loguea, no rompe)
 	if mode == "respond" && payload != "" {
-		content = guardNumbers(content, payload)
+		guardNumbers(content, payload)
 	}
 
 	return &models.SynthesisResponse{
@@ -129,65 +128,102 @@ func (s *Synthesizer) Synthesize(
 	}, nil
 }
 
-
-
-
-
-// guardNumbers verifica que el número MÁS IMPORTANTE del rawData esté en la respuesta.
-func guardNumbers(content, rawData string) string {
-	matches := reNumber.FindAllString(rawData, -1)
-	if len(matches) == 0 {
-		return content // No hay números grandes que proteger
+/* ============================================================
+   DETECT MODE
+============================================================ */
+func (s *Synthesizer) detectMode(req models.SynthesisRequest) string {
+	if req.IsConversational {
+		return "conversation"
 	}
-
-	targetNumber := matches[0]
-	respDigits := regexp.MustCompile(`\D`).ReplaceAllString(content, "")
-
-	if !strings.Contains(respDigits, targetNumber) {
-		log.Printf("Synthesizer: ALERTA - Número principal %q no encontrado en respuesta. Respuesta: %q", targetNumber, content)
-		formatted := formatNumber(targetNumber)
-		return fmt.Sprintf("El resultado principal es %s.", formatted)
+	if req.ErrorCode != "" {
+		return "error"
 	}
-
-	return content
+	if req.RawData == "" {
+		for _, v := range req.DataSlots {
+			if v == nil {
+				return "clarify"
+			}
+		}
+		if req.Confidence > 0 && req.Confidence < LowConfidenceThreshold {
+			return "clarify"
+		}
+		return "conversation"
+	}
+	return "respond"
 }
 
+/* ============================================================
+   EXTRACT PAYLOAD
+============================================================ */
+// extractPayload convierte el envelope JSON a texto legible para el LLM.
+// Si no es envelope, devuelve el raw tal cual.
 func extractPayload(raw string) string {
 	var env struct {
-		Type string          `json:"type"`
-		Data json.RawMessage `json:"data"`
+		Type  string          `json:"type"`
+		Label string          `json:"label"`
+		Data  json.RawMessage `json:"data"`
+		Meta  json.RawMessage `json:"meta"`
 	}
-	if err := json.Unmarshal([]byte(raw), &env); err == nil && env.Type != "" && len(env.Data) > 0 {
-		res := strings.TrimSpace(string(env.Data))
-		if strings.HasPrefix(res, "\"") && strings.HasSuffix(res, "\"") {
-			return res[1 : len(res)-1]
+	if err := json.Unmarshal([]byte(raw), &env); err != nil || env.Type == "" {
+		return raw
+	}
+
+	var sb strings.Builder
+	sb.WriteString("tipo: " + env.Type + "\n")
+
+	if env.Label != "" {
+		sb.WriteString("descripción: " + env.Label + "\n")
+	}
+
+	if len(env.Data) > 0 && string(env.Data) != "null" {
+		data := strings.TrimSpace(string(env.Data))
+		if strings.HasPrefix(data, "\"") && strings.HasSuffix(data, "\"") {
+			data = data[1 : len(data)-1]
 		}
-		return res
+		sb.WriteString("valor: " + data + "\n")
 	}
-	return raw
+
+	if len(env.Meta) > 0 && string(env.Meta) != "null" {
+		sb.WriteString("meta: " + string(env.Meta) + "\n")
+	}
+
+	return strings.TrimSpace(sb.String())
 }
 
-func formatNumber(s string) string {
-	s = regexp.MustCompile(`\D`).ReplaceAllString(s, "")
-	if len(s) <= 3 {
-		return s
+/* ============================================================
+   GUARD NUMBERS
+============================================================ */
+// guardNumbers verifica que el número principal del raw_data esté presente.
+// Solo loguea si falla. NO reemplaza la respuesta del LLM.
+func guardNumbers(content, rawData string) {
+	matches := reNumber.FindAllString(rawData, -1)
+	if len(matches) == 0 {
+		return
 	}
-	
-	var out []byte
-	for i, char := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			out = append(out, '.')
+
+	// Elegir el número más largo como principal
+	target := matches[0]
+	for _, m := range matches {
+		if len(m) > len(target) {
+			target = m
 		}
-		out = append(out, byte(char))
 	}
-	return string(out)
+
+	respDigits := reNonDigit.ReplaceAllString(content, "")
+
+	if !strings.Contains(respDigits, target) {
+		log.Printf("Synthesizer: ALERTA - Número %q no está en la respuesta. Content: %q", target, content)
+	}
 }
 
+/* ============================================================
+   BUILD HISTORY ENTRY
+============================================================ */
 func buildHistoryEntry(mode string, req models.SynthesisRequest, now time.Time) *models.HistoryEntry {
 	var summary string
 	switch mode {
 	case "conversation":
-		summary = fmt.Sprintf("respondí: %s", req.FunctionName)
+		summary = fmt.Sprintf("%s()", req.FunctionName)
 	case "clarify":
 		var missing []string
 		for k, v := range req.DataSlots {
@@ -196,14 +232,18 @@ func buildHistoryEntry(mode string, req models.SynthesisRequest, now time.Time) 
 			}
 		}
 		if len(missing) > 0 {
-			summary = fmt.Sprintf("pedí datos faltantes: %s", strings.Join(missing, ", "))
+			summary = fmt.Sprintf("pedí %s en %s(%s)",
+				strings.Join(missing, ", "),
+				req.FunctionName,
+				formatMap(req.Parameters),
+			)
 		} else {
-			summary = "pedí aclaración por baja confianza"
+			summary = "pedí aclaración"
 		}
 	case "respond":
-		summary = fmt.Sprintf("respondí sobre %s con datos del sistema", req.FunctionName)
+		summary = fmt.Sprintf("%s(%s)", req.FunctionName, formatMap(req.Parameters))
 	case "error":
-		summary = fmt.Sprintf("informé error (%s) en %s", req.ErrorCode, req.FunctionName)
+		summary = fmt.Sprintf("error %s en %s", req.ErrorCode, req.FunctionName)
 	default:
 		summary = "respondí"
 	}
@@ -214,27 +254,20 @@ func buildHistoryEntry(mode string, req models.SynthesisRequest, now time.Time) 
 	}
 }
 
-func (s *Synthesizer) currentTime() time.Time {
-	loc, err := time.LoadLocation(s.timezone)
-	if err != nil {
-		log.Printf("Synthesizer: timezone inválida %q, usando UTC", s.timezone)
-		return time.Now().UTC()
-	}
-	return time.Now().In(loc)
-}
-
+/* ============================================================
+   BUILD SYSTEM PROMPT
+============================================================ */
 func (s *Synthesizer) buildSystemPrompt(
 	req models.SynthesisRequest,
 	mode string,
 	now time.Time,
 	payload string,
 ) string {
+
 	historyStr := s.formatHistory(req.History)
 	paramsStr := formatMap(req.Parameters)
 
-	base := fmt.Sprintf(`Eres GAIA, el asistente de un sistema empresarial.
-Hablas SIEMPRE en español, con tono cercano pero profesional.
-NUNCA menciones que eres una IA, ni que "sintetizas", ni que "recibiste datos".
+	base := fmt.Sprintf(`%s
 
 ## Fecha y hora actual
 %s (zona: %s)
@@ -250,6 +283,7 @@ NUNCA menciones que eres una IA, ni que "sintetizas", ni que "recibiste datos".
 ## Historial reciente
 %s
 `,
+		Personality,
 		now.Format("2006-01-02 15:04"),
 		s.timezone,
 		req.Intent,
@@ -260,16 +294,18 @@ NUNCA menciones que eres una IA, ni que "sintetizas", ni que "recibiste datos".
 	)
 
 	switch mode {
+
+	/* ---------- CONVERSACIÓN ---------- */
 	case "conversation":
 		return base + `
 ## Tu tarea (CHARLA CASUAL)
-Responde breve (1-2 frases), amable y directo.
-- Si es saludo/despedida: sé cordial.
-- ⚠️ PROHIBIDO el uso de emojis (😊, 👋, etc.). Usa solo texto profesional.
-- Si pregunta "quién sos": respondé que sos el asistente del sistema empresarial.
-NO inventes opciones ni hagas preguntas existenciales.
-Genera la respuesta ahora.`
+El usuario hizo un saludo, una pregunta general o charla sin acción concreta.
+Respondé breve (1-2 frases), amable y directo, con tu personalidad.
+NO inventes que tenés que ejecutar algo.
+Si ya hay historial, NO saludes de nuevo.
+Generá la respuesta ahora.`
 
+	/* ---------- CLARIFY ---------- */
 	case "clarify":
 		var missing []string
 		filled := map[string]interface{}{}
@@ -285,14 +321,14 @@ Genera la respuesta ahora.`
 			return base + fmt.Sprintf(`
 ## Tu tarea (PEDIR DATOS FALTANTES)
 El usuario quiere: %s.
-Ya proporcionó: %s.
-Falta que proporcione: %s.
+Ya dio: %s.
+Falta: %s.
 
-Genera UNA sola pregunta natural en español pidiendo SOLO los datos que faltan.
+Generá UNA sola pregunta natural pidiendo SOLO los datos que faltan.
+- No pidas lo que ya tiene.
 - Sé conciso (1-2 frases).
-- Tono amable, sin sonar robótico.
-- NO inventes alternativas ni opciones múltiples.
-Genera la pregunta ahora.`,
+- NO inventes alternativas.
+Generá la pregunta ahora.`,
 				req.Intent,
 				formatMap(filled),
 				strings.Join(missing, ", "),
@@ -301,36 +337,32 @@ Genera la pregunta ahora.`,
 
 		return base + `
 ## Tu tarea (PEDIR ACLARACIÓN)
-El usuario dijo algo ambiguo y no se pudo entender con certeza qué quiere.
-- Si el historial aclara la intención, reformulá con eso: "¿Te referís a X?".
-- Si no hay contexto, pedí que reformule brevemente.
-- NO adivines ni inventes opciones.
-Genera la respuesta ahora.`
+El usuario dijo algo ambiguo. Pedí que reformule brevemente.
+- Si el historial aclara, reformulá con eso: "¿Te referís a X?".
+- NO inventes opciones.
+Generá la respuesta ahora.`
 
+	/* ---------- RESPOND ---------- */
 	case "respond":
 		return base + fmt.Sprintf(`
-## Tu tarea (RESPONDER CON DATOS DEL SISTEMA)
-El sistema devolvió estos DATOS para la petición del usuario:
+## Tu tarea (RESPONDER)
+El sistema devolvió estos datos:
 
 %s
 
-## REGLA CRÍTICA SOBRE NÚMEROS
-- Los números en los datos DEBEN copiarse EXACTAMENTE, solo agregando puntos de mil.
-- Si el dato dice "7075000", tu respuesta DEBE decir "7.075.000".
-- NUNCA inventes, reordenes o elimines dígitos.
-- Si el dato es "0" o "null", indicá que no hay resultados o el valor es cero.
+## Cómo responder
+- Redactá una respuesta natural usando el mensaje original, la intención y el campo "descripción".
+- Copiá los números EXACTO, con puntos de mil: 126825000 → 126.825.000.
+- Usá la unidad del campo "meta" si existe (ej: Gs).
+- Usá SOLO lo que está en los datos. NO inventes.
+- Breve (1-3 frases), con tu personalidad.
+- No menciones términos técnicos ("JSON", "envelope", "sistema devolvió").
 
-## Reglas generales
-- Usa SOLO los datos proporcionados. NO inventes.
-- Si es una lista con más de 5 items, mostrá 5 y decí "y N más".
-- Sé conciso (1-3 frases, o lista corta).
-- No menciones "el sistema devolvió" ni términos técnicos como "JSON" o "envelope".
-- Cierra con una pregunta simple solo si es natural: "¿Necesitás algo más?".
-
-Genera la respuesta ahora.`,
+Generá la respuesta ahora.`,
 			payload,
 		)
 
+	/* ---------- ERROR ---------- */
 	case "error":
 		return base + s.errorRules(req.ErrorCode)
 	}
@@ -338,29 +370,40 @@ Genera la respuesta ahora.`,
 	return base
 }
 
-
-
+/* ============================================================
+   ERROR RULES
+============================================================ */
 func (s *Synthesizer) errorRules(errorCode string) string {
 	switch errorCode {
 	case "execution_failed", "timeout":
 		return `
-## Tu tarea (FALLO O DEMORA DEL SISTEMA)
-- Discúlpate breve y claramente (1-2 frases).
-- ⚠️ PROHIBIDO el uso de emojis (😊, 👋, etc.). Usa solo texto.
-- NO pidas datos nuevos ni expliques el error técnico.
-- Sugiere intentar de nuevo en unos minutos.
-Ejemplo: "No pude completar la operación en este momento. ¿Podés intentar de nuevo en unos minutos?"
-Genera la respuesta ahora.`
+## Tu tarea (FALLO DEL SISTEMA)
+- Disculpate breve (1-2 frases), con tu personalidad.
+- NO pidas datos nuevos.
+- Sugerí intentar de nuevo en unos minutos.
+- NO menciones detalles técnicos.
+Generá la respuesta ahora.`
 
 	default:
 		return `
-## Tu tarea (ERROR DEL SISTEMA)
-- Discúlpate breve y claramente.
-- ⚠️ PROHIBIDO el uso de emojis.
-- NO pidas datos nuevos ni hagas preguntas sobre la operación.
-- Sugiere intentar de nuevo más tarde.
-Genera la respuesta ahora.`
+## Tu tarea (ERROR)
+- Disculpate breve, con tu personalidad.
+- NO pidas datos nuevos.
+- Sugerí intentar de nuevo más tarde.
+Generá la respuesta ahora.`
 	}
+}
+
+/* ============================================================
+   HELPERS
+============================================================ */
+func (s *Synthesizer) currentTime() time.Time {
+	loc, err := time.LoadLocation(s.timezone)
+	if err != nil {
+		log.Printf("Synthesizer: timezone inválida %q, usando UTC", s.timezone)
+		return time.Now().UTC()
+	}
+	return time.Now().In(loc)
 }
 
 func (s *Synthesizer) formatHistory(history []models.HistoryEntry) string {

@@ -3,22 +3,23 @@ package normalizer
 
 import "strings"
 
-var trueValues = map[string]bool{
+var valoresVerdadero = map[string]bool{
 	"sí": true, "si": true, "yes": true, "true": true, "1": true,
 	"verdadero": true, "correcto": true, "ok": true,
 }
 
-var falseValues = map[string]bool{
+var valoresFalso = map[string]bool{
 	"no": true, "false": true, "0": true,
 	"falso": true, "incorrecto": true,
 }
 
+// parseBoolean interpreta cadenas como "sí", "no", "true", "false".
 func parseBoolean(s string) (bool, bool) {
 	s = strings.TrimSpace(strings.ToLower(s))
-	if trueValues[s] {
+	if valoresVerdadero[s] {
 		return true, true
 	}
-	if falseValues[s] {
+	if valoresFalso[s] {
 		return false, true
 	}
 	return false, false

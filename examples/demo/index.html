@@ -15,10 +15,7 @@
   }
   html,body{height:100%}
   body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.5;overflow:hidden}
-
   .app{display:flex;height:100dvh}
-
-  /* ---------- PANEL IZQUIERDO ---------- */
   .panel{flex:0 0 330px;background:var(--bg-side);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
   .panel-head{display:flex;align-items:center;gap:10px;padding:16px;border-bottom:1px solid var(--border)}
   .panel-head strong{display:block;font-size:15px}
@@ -61,22 +58,16 @@
   .unknown-item small{display:block;color:var(--muted);margin:4px 0}
   .panel-note{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.45}
   .panel-foot{padding:12px 16px;font-size:10.5px;color:var(--muted)}
-
-  /* ---------- DIFF DE COLLECTED_DATA ---------- */
   .diff-line{display:block;font-family:var(--mono);font-size:11px;padding:1px 4px;border-radius:3px;margin:1px 0}
   .diff-add{background:rgba(0,229,160,.12);color:#7FFFCB}
   .diff-del{background:rgba(255,77,77,.12);color:#FFA8A8}
   .diff-same{color:#A0A0A0}
-
-  /* ---------- HISTORIAL NAVEGABLE ---------- */
   .hist-item{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px;cursor:pointer;transition:border-color .15s}
   .hist-item:hover{border-color:var(--accent)}
   .hist-item.active{border-color:var(--accent);background:rgba(0,229,160,.04)}
   .hist-item .hist-role{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
   .hist-item .hist-text{color:#D4D4D4;margin-top:3px;font-size:11.5px;line-height:1.4}
   .hist-empty{font-size:11.5px;color:var(--muted);font-style:italic}
-
-  /* ---------- CHAT ---------- */
   .chat{flex:1 1 0;min-width:0;display:flex;flex-direction:column;height:100dvh}
   .chat-header{display:flex;align-items:center;gap:11px;padding:12px 18px;border-bottom:1px solid var(--border);background:rgba(10,10,10,.85);backdrop-filter:blur(8px)}
   .chat-header .titles{flex:1;min-width:0}
@@ -90,7 +81,6 @@
   #btnInsp .cnt{position:absolute;top:0;right:0;font-family:var(--mono);font-size:8.5px;background:var(--accent);color:#03130D;border-radius:8px;padding:0 4px;font-weight:700;display:none}
   #btnInsp .cnt.show{display:block}
   .menu{display:none}
-
   .verbose-toggle{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;color:var(--muted);cursor:pointer;padding:5px 9px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card)}
   .verbose-toggle:hover{border-color:var(--accent);color:var(--accent)}
   .verbose-toggle input{display:none}
@@ -99,7 +89,6 @@
   .verbose-toggle input:checked + .sw{background:var(--accent-dim)}
   .verbose-toggle input:checked + .sw::after{transform:translateX(12px);background:var(--accent)}
   .verbose-toggle.on{color:var(--accent);border-color:var(--accent)}
-
   .messages{flex:1;overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:12px}
   .msg{max-width:78%;padding:11px 15px;border-radius:14px;font-size:14.5px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere}
   .msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--accent-dim),var(--accent));color:#03130D;font-weight:500;border-bottom-right-radius:4px}
@@ -114,21 +103,17 @@
   .typing span:nth-child(2){animation-delay:.2s}
   .typing span:nth-child(3){animation-delay:.4s}
   @keyframes blink{0%,80%,100%{opacity:.15}40%{opacity:1}}
-
   .msg .verbose{margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
   .msg .verbose summary{font-family:var(--mono);font-size:10px;color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:.05em}
   .msg .verbose summary::marker{color:var(--muted)}
   .msg .verbose .v-item{margin-top:8px}
   .msg .verbose .v-label{font-family:var(--mono);font-size:9.5px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
   .msg .verbose .v-pre{background:var(--bg-code);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:10.5px;color:#C8C8C8;overflow:auto;max-height:180px;white-space:pre-wrap;word-break:break-word}
-
   .raw-chip{display:inline-block;font-family:var(--mono);font-size:10px;background:rgba(255,179,71,.1);border:1px solid rgba(255,179,71,.35);color:#FFD9A0;border-radius:5px;padding:2px 7px;margin-top:6px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
   .chips{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;border-top:1px solid var(--border);scrollbar-width:none}
   .chips::-webkit-scrollbar{display:none}
   .chip{flex-shrink:0;background:var(--bg-card);border:1px solid var(--border);color:#D4D4D4;font-size:12px;padding:7px 13px;border-radius:999px;cursor:pointer}
   .chip:hover{border-color:var(--accent);color:var(--accent)}
-
   .composer{display:flex;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border)}
   .composer input{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 15px;color:var(--text);font-size:15px;font-family:var(--sans)}
   .composer input:focus{outline:none;border-color:var(--accent)}
@@ -136,7 +121,6 @@
   .send{width:46px;height:46px;min-width:46px;border:none;border-radius:12px;background:var(--accent);color:#03130D;cursor:pointer;display:grid;place-items:center}
   .send:hover{filter:brightness(1.1)}
   .send:disabled{opacity:.4;cursor:not-allowed}
-
   .inspector{flex:0 0 auto;width:0;overflow:hidden;background:var(--bg-side);border-left:1px solid transparent;transition:width .22s ease}
   .inspector.open{width:410px;border-left-color:var(--border)}
   .inspector-inner{width:410px;height:100%;display:flex;flex-direction:column}
@@ -168,15 +152,12 @@
   .kind-error{border-color:rgba(255,77,77,.4)}
   .kind-error .kind-tag{background:#7F1D1D;color:#FECACA}
   .kind-error .insp-path{color:#FCA5A5}
-
   .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s;z-index:55}
   .backdrop.show{opacity:1;pointer-events:auto}
-
   ::-webkit-scrollbar{width:8px;height:8px}
   ::-webkit-scrollbar-track{background:var(--bg)}
   ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
   ::-webkit-scrollbar-thumb:hover{background:#404040}
-
   @media (max-width:1100px){
     .inspector{position:fixed;top:0;right:0;bottom:0;height:100dvh;width:min(92vw,420px)!important;transform:translateX(105%);transition:transform .25s ease;z-index:60;border-left:1px solid var(--border);box-shadow:-10px 0 30px rgba(0,0,0,.5)}
     .inspector.open{transform:none}
@@ -217,7 +198,7 @@
       <h4>Sesión</h4>
       <div class="kv" id="sessionInfo"></div>
       <button class="btn primary wide" id="btnNew">＋ Nueva conversación</button>
-      <h4 style="margin-top:16px">Estado del turno (collected_data)</h4>
+      <h4 style="margin-top:16px">Estado del turno (data_slots)</h4>
       <div id="stateDiff" class="mini-pre">null</div>
     </section>
 
@@ -338,7 +319,6 @@ let DB = null;
 
 function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 
-
 function hydrateDB(db){
   const sellers = (db.employees||[]).filter(e=>/venta/i.test(e.department||'')).map(e=>e.name);
   const s = db.sales_history || {};
@@ -348,7 +328,6 @@ function hydrateDB(db){
   const qmax = s.qty_per_invoice_max ?? 25;
   const rnd = mulberry32((s.seed ?? 2026) + 1);
 
-  // Genera N items aleatorios desde el catálogo de productos.
   const makeItems = (targetQty) => {
     const items = [];
     let remaining = targetQty;
@@ -414,8 +393,6 @@ function hydrateDB(db){
   return db;
 }
 
-
-
 async function loadDB(){
   const r = await fetch('db.json', { cache: 'no-store' });
   if(!r.ok) throw new Error('no se pudo cargar db.json (HTTP ' + r.status + ')');
@@ -466,16 +443,15 @@ function findSupplier(q){ const n = norm(q); return DB.suppliers.find(s => norm(
 function findEmployee(q){ const n = norm(q); return DB.employees.find(e => norm(e.name).includes(n) || n.includes(norm(e.name).split(' ')[0])); }
 const nextOC = () => 'OC-' + String(DB.purchase_orders.reduce((m,o)=>Math.max(m, parseInt(o.id.slice(3))||0), 0) + 1).padStart(4,'0');
 
-/* CATALOG y FUNCTION_ALIASES vienen de functions.js y aliases.js */
-
 /* ============================================================
    ESTADO DEL CLIENTE
 ============================================================ */
 const state = {
   baseUrl: (localStorage.getItem('gaia_base_url') || (location.protocol.startsWith('http') ? window.location.origin : 'http://localhost:8080')).replace(/\/+$/,''),
   sessionId: (crypto.randomUUID ? crypto.randomUUID() : 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2)),
-  collectedData: null,
-  collectedDataPrev: null,
+  pendingFunction: null,
+  dataSlots: null,
+  dataSlotsPrev: null,
   history: [],
   turns: [],
   unknownFunctions: [],
@@ -505,51 +481,13 @@ function dropPlaceholders(params){
 }
 
 /* ============================================================
-   RESPUESTAS LOCALES
+   DIFF DE DATA_SLOTS
 ============================================================ */
-function capabilityList(){
-  return Object.values(CATALOG).map(f => '• ' + f.description).join('\n');
-}
-function identityText(){
-  return `Soy GAIA, el asistente gerencial de ${DB.company.name} 🤖\n\nEstoy conectado al ERP y puedo ayudarte con:\n${capabilityList()}\n\nContame qué necesitás.`;
-}
-function notImplementedText(fName){
-  return `La función «${fName}» no está implementada.`;
-}
-const GENERIC_HELP = 'Puedo ayudarte con el ERP: facturación, rentabilidad, gastos, cobranzas, caja, inventario, proveedores, RRHH y KPIs gerenciales. ¿Qué necesitás?';
-
-function localConversationReply(intent, message){
-  if(intent === '__generic__') return GENERIC_HELP;
-  const t = norm(intent) + ' | ' + norm(message || '');
-  if(/introduc|who\s*are|quien\s*(eres|sos)|que\s*(eres|sos)|identidad|presentate|presentacion|hablame\s*de\s*ti/.test(t))
-    return identityText();
-  if(/greet|saludo|(^|\s)(hola|holis|hi|hey|buenas|buenos\s*dias|buen\s*dia|buenas\s*tardes|buenas\s*noches|que\s*tal|como\s*estas|como\s*andas)(\s|$)/.test(t))
-    return '¡Hola! ¿En qué te puedo ayudar hoy? 😊';
-  if(/gracias|thank/.test(t))
-    return '¡De nada! Estoy para lo que necesites. 🙌';
-  if(/(^|\s)(chau|adios|bye)(\s|$)|hasta\s*luego|nos\s*vemos|despedid/.test(t))
-    return '¡Hasta pronto! Si necesitás algo más, acá estoy. 👋';
-  if(/(^|\s)(ayuda|help)(\s|$)|que\s*podes|podes\s*hacer|que\s+puedes|capacid|funciones|para\s+que\s+sirves|como\s+funcionas/.test(t))
-    return `Puedo ejecutar ${Object.keys(CATALOG).length} funciones sobre el ERP:\n\n${capabilityList()}`;
-  return null;
-}
-
-function localSynth(response, intent, mode = 'conversation'){
-  return {
-    response,
-    mode,
-    history_entry: { role:'assistant', summary:'respondí ' + intent + ' (local)', timestamp: new Date().toISOString() }
-  };
-}
-
-/* ============================================================
-   DIFF DE COLLECTED_DATA
-============================================================ */
-function diffCollected(prev, next){
+function diffSlots(prev, next){
   const lines = [];
   if(!prev && !next) return null;
   if(!next){
-    if(prev) lines.push({ type:'del', text:'(turno cerrado, collected_data = null)' });
+    if(prev) lines.push({ type:'del', text:'(turno cerrado, data_slots = null)' });
     return lines.length ? lines : null;
   }
   const p = prev || {};
@@ -576,16 +514,9 @@ function diffCollected(prev, next){
 ============================================================ */
 let turnLog = null;
 function beginTurnLog(userMessage){
-  turnLog = {
-    session_id: state.sessionId,
-    timestamp: new Date().toISOString(),
-    user_message: userMessage,
-    steps: []
-  };
+  turnLog = { session_id: state.sessionId, timestamp: new Date().toISOString(), user_message: userMessage, steps: [] };
 }
-function turnStep(label, data){
-  if(turnLog) turnLog.steps.push({ step: label, data: data ?? null });
-}
+function turnStep(label, data){ if(turnLog) turnLog.steps.push({ step: label, data: data ?? null }); }
 function endTurnLog(extra){
   if(!turnLog) return;
   Object.assign(turnLog, extra || {});
@@ -619,11 +550,10 @@ function pushEntry(entry){
 
 function logTraffic(method, path, req, res, status){
   const bad = !status || status >= 400;
-  const baseUrl = state.baseUrl.replace(/\/+$/,'');
   pushEntry({
     kind: bad ? 'error' : kindOfPath(path),
     method, path, status, ts: new Date(),
-    baseUrl,
+    baseUrl: state.baseUrl.replace(/\/+$/,''),
     blocks: [
       req !== undefined ? { label:'→ request', data: req } : null,
       { label: bad ? '← response / error' : '← response', data: res }
@@ -644,10 +574,7 @@ function renderInspector(){
   } else {
     cnt.classList.remove('show'); btn.classList.remove('has-new');
   }
-  if(!insp.entries.length){
-    w.innerHTML = '<p class="empty">Sin tráfico todavía.</p>';
-    return;
-  }
+  if(!insp.entries.length){ w.innerHTML = '<p class="empty">Sin tráfico todavía.</p>'; return; }
   w.innerHTML = '';
   insp.entries.forEach((e, i) => {
     const d = document.createElement('details');
@@ -671,7 +598,6 @@ function renderInspector(){
     });
 
     const actions = document.createElement('div'); actions.className = 'insp-actions';
-
     const cp = document.createElement('button'); cp.className = 'btn tiny'; cp.textContent = 'Copiar JSON';
     cp.onclick = async () => {
       const payload = e.blocks.map(b => b.label + '\n' + (typeof b.data === 'string' ? b.data : JSON.stringify(b.data, null, 2))).join('\n\n');
@@ -683,7 +609,6 @@ function renderInspector(){
     if(e.path && e.blocks.length && e.blocks[0].label.startsWith('→')){
       const reqBody = typeof e.blocks[0].data === 'string' ? null : e.blocks[0].data;
       if(reqBody){
-        const method = e.method || 'POST';
         const url = (e.baseUrl || state.baseUrl) + e.path;
         const c = document.createElement('button'); c.className = 'btn tiny'; c.textContent = 'Copiar como curl';
         c.onclick = async () => {
@@ -693,7 +618,6 @@ function renderInspector(){
         actions.appendChild(c);
       }
     }
-
     body.appendChild(actions);
     d.appendChild(sum); d.appendChild(body); w.appendChild(d);
   });
@@ -760,7 +684,6 @@ function addAssistant(text, meta = {}){
     meta.fName ? 'fn: ' + meta.fName : null,
     meta.confidence != null ? 'conf ' + Number(meta.confidence).toFixed(2) : null,
     meta.mode ? 'modo: ' + meta.mode : null,
-    meta.local ? 'local' : null,
     meta.errorCode ? 'error: ' + meta.errorCode : null
   ].filter(Boolean);
   if(parts.length){
@@ -787,28 +710,21 @@ function addAssistant(text, meta = {}){
     for(const item of meta.verbose){
       const wrap = document.createElement('div');
       wrap.className = 'v-item';
-      const lbl = document.createElement('div');
-      lbl.className = 'v-label';
-      lbl.textContent = item.label;
-      const pre = document.createElement('pre');
-      pre.className = 'v-pre';
+      const lbl = document.createElement('div'); lbl.className = 'v-label'; lbl.textContent = item.label;
+      const pre = document.createElement('pre'); pre.className = 'v-pre';
       pre.textContent = typeof item.data === 'string' ? item.data : JSON.stringify(item.data, null, 2);
       wrap.appendChild(lbl); wrap.appendChild(pre); det.appendChild(wrap);
     }
 
     if(meta.curl){
-      const wrap = document.createElement('div');
-      wrap.className = 'v-item';
-      const lbl = document.createElement('div');
-      lbl.className = 'v-label'; lbl.textContent = 'curl reproducible';
-      const pre = document.createElement('pre');
-      pre.className = 'v-pre'; pre.textContent = meta.curl;
+      const wrap = document.createElement('div'); wrap.className = 'v-item';
+      const lbl = document.createElement('div'); lbl.className = 'v-label'; lbl.textContent = 'curl reproducible';
+      const pre = document.createElement('pre'); pre.className = 'v-pre'; pre.textContent = meta.curl;
       const cp = document.createElement('button');
       cp.className = 'btn tiny'; cp.textContent = 'Copiar curl'; cp.style.marginTop = '6px';
       cp.onclick = async () => { await copyText(meta.curl); cp.textContent = '✔ Copiado'; setTimeout(()=>cp.textContent='Copiar curl', 1500); };
       wrap.appendChild(lbl); wrap.appendChild(pre); wrap.appendChild(cp); det.appendChild(wrap);
     }
-
     d.appendChild(det);
   }
 
@@ -837,15 +753,15 @@ function renderSession(){
   $('#sessionInfo').innerHTML = `
     <div><span>Sesión</span><b>${escapeHtml(state.sessionId.slice(0,8))}…</b></div>
     <div><span>Historial</span><b>${state.history.length}/6 entradas</b></div>
-    <div><span>Turno</span><b>${state.collectedData ? escapeHtml(state.collectedData.status || '—') : 'cerrado'}</b></div>
+    <div><span>Función pendiente</span><b>${escapeHtml(state.pendingFunction || '—')}</b></div>
     <div><span>DB prueba</span><b>${escapeHtml(state.dbSource || '…')}</b></div>`;
 
   const el = $('#stateDiff');
-  if(!state.collectedData && !state.collectedDataPrev){
+  if(!state.dataSlots && !state.dataSlotsPrev){
     el.textContent = 'null';
     return;
   }
-  const lines = diffCollected(state.collectedDataPrev, state.collectedData);
+  const lines = diffSlots(state.dataSlotsPrev, state.dataSlots);
   if(!lines){ el.textContent = 'null'; return; }
   el.innerHTML = lines.map(l => `<span class="diff-line diff-${l.type}">${escapeHtml(l.text)}</span>`).join('');
 }
@@ -911,13 +827,27 @@ function renderUnknown(){
 }
 
 /* ============================================================
+   FALLBACK LOCAL (solo si GAIA falla)
+============================================================ */
+function fallbackSynth(text, mode = 'error'){
+  return {
+    response: text,
+    mode,
+    history_entry: { role:'assistant', summary: 'fallback local', timestamp: new Date().toISOString() }
+  };
+}
+function notImplementedText(fName){
+  return `La función «${fName}» no está implementada en el catálogo del cliente.`;
+}
+
+/* ============================================================
    ORQUESTACIÓN DEL TURNO
 ============================================================ */
 async function processTurn(message){
   if(state.busy || !message) return;
   await dbReady;
   state.busy = true;
-  state.collectedDataPrev = state.collectedData;
+  state.dataSlotsPrev = state.dataSlots ? { ...state.dataSlots } : null;
 
   $('#input').disabled = true; $('#input').value = '';
   $('.send').disabled = true;
@@ -931,7 +861,8 @@ async function processTurn(message){
     const analyzeReq = {
       session_id: state.sessionId,
       message,
-      collected_data: state.collectedData,
+      function_name: state.pendingFunction || '',
+      data_slots: state.dataSlots || {},
       history: state.history.slice(-6)
     };
     const analysis = await api('POST', '/v1/analyze', analyzeReq);
@@ -941,35 +872,31 @@ async function processTurn(message){
 
     const intent = analysis.intent || 'unknown';
     const fName  = (analysis.function_name || '').trim();
-    const isConversation = !fName || /^conversation/i.test(intent);
+    const isConversation = analysis.is_conversational === true;
 
-    /* 2a) Conversación pura */
+    /* 2a) CONVERSACIÓN — el Planner lo declaró explícitamente */
     if(isConversation){
-      const local = localConversationReply(intent, message);
-      if(local){
-        turnStep('2. respuesta local (sin GAIA)', { intent, response: local });
-        verboseSteps.push({ label: '3. Respuesta local (sin Synthesizer)', data: { response: local } });
-        logEvent('local', '💬 respuesta local (sin llamar a GAIA)', { intent, message, response: local });
-        finishTurn(message, localSynth(local, intent), { intent, confidence: analysis.confidence, local: true, verbose: verboseSteps });
-        return;
-      }
-
+      const synthReq = {
+        original_message: message,
+        intent,
+        is_conversational: true,
+        function_name: fName || 'obtener_conversacion',
+        parameters: analysis.parameters || {},
+        data_slots: {},
+        confidence: analysis.confidence,
+        history: state.history.slice(-6)
+      };
       let synth;
-      const synthReq = { original_message: message, intent, history: state.history.slice(-6) };
       try{
         synth = await api('POST', '/v1/synthesize', synthReq);
-        turnStep('2. synthesize (GAIA)', synth);
+        turnStep('2. synthesize (conversation)', synth);
         verboseSteps.push({ label: '3. Request /v1/synthesize', data: synthReq });
         verboseSteps.push({ label: '4. Response /v1/synthesize', data: synth });
       }catch{
-        synth = localSynth(GENERIC_HELP, intent);
-        turnStep('2. synthesize falló → fallback local', { response: GENERIC_HELP });
+        synth = fallbackSynth('¡Hola! ¿En qué te puedo ayudar?', 'conversation');
+        turnStep('2. synthesize falló → fallback local', { response: synth.response });
       }
-      if(synth.mode !== 'conversation'){
-        logEvent('local', '🔧 fallback local (GAIA devolvió modo "' + synth.mode + '")', { intent });
-        synth = localSynth(GENERIC_HELP, intent);
-      }
-      finishTurn(message, synth, { intent, confidence: analysis.confidence, local: true, verbose: verboseSteps });
+      finishTurn(message, synth, { intent, fName, confidence: analysis.confidence, verbose: verboseSteps });
       return;
     }
 
@@ -994,8 +921,10 @@ async function processTurn(message){
       const synthReq = {
         original_message: message,
         intent,
+        is_conversational: false,
         function_name: fName,
         parameters: analysis.parameters || {},
+        data_slots: {},
         error_code: 'function_not_found',
         confidence: analysis.confidence,
         history: state.history.slice(-6)
@@ -1008,16 +937,17 @@ async function processTurn(message){
         finishTurn(message, synth, { intent, fName, confidence: analysis.confidence, errorCode: 'function_not_found', verbose: verboseSteps });
       }catch{
         const msgLocal = notImplementedText(fName);
-        finishTurn(message, localSynth(msgLocal, intent, 'error'),
-          { intent, fName, errorCode: 'function_not_found', local: true, verbose: verboseSteps });
+        finishTurn(message, fallbackSynth(msgLocal, 'error'),
+          { intent, fName, errorCode: 'function_not_found', verbose: verboseSteps });
       }
       return;
     }
 
-    /* 3) Merge + filtrar placeholders */
-    const merged = { ...(state.collectedData?.parameters || {}), ...(analysis.parameters || {}) };
+    /* 3) Merge params anteriores + nuevos, filtrar placeholders */
+    const prevSlots = state.dataSlots || {};
+    const merged = { ...prevSlots, ...(analysis.parameters || {}) };
     const { clean } = dropPlaceholders(merged);
-    turnStep('2. parámetros (combinados + filtrados)', { combinados: merged, finales: clean });
+    turnStep('2. parámetros combinados (previos + nuevos)', { combinados: merged, finales: clean });
 
     /* 4) NORMALIZE */
     let params = clean;
@@ -1032,43 +962,72 @@ async function processTurn(message){
       turnStep('3. normalize falló → uso valores crudos', params);
     }
 
-    /* 5) missing_slots */
-    const missing = fn.required.filter(k => {
-      const v = params[k];
-      return v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length);
-    });
+    /* 5) Armar data_slots con las claves del contrato */
+    const slots = {};
+    for(const k of fn.required){
+      slots[k] = params[k] !== undefined ? params[k] : null;
+    }
+    for(const k of Object.keys(fn.optional || {})){
+      if(params[k] !== undefined) slots[k] = params[k];
+    }
+    turnStep('4. data_slots del contrato', slots);
 
-    const base = { original_message: message, intent, function_name: resolvedName, parameters: params, history: state.history.slice(-6) };
+    /* 6) Chequear si faltan slots */
+    const missing = fn.required.filter(k => slots[k] == null);
 
     /* 6a) Faltan datos → clarify */
     if(missing.length){
-      turnStep('4. faltan datos (missing_slots)', missing);
-      state.collectedData = { intent, function_name: resolvedName, parameters: params, missing_slots: missing, status: 'waiting_for_data' };
-      const synthReq = { ...base, missing_slots: missing, confidence: analysis.confidence };
+      turnStep('5. faltan slots: ' + missing.join(', '), { missing, slots });
+      state.pendingFunction = resolvedName;
+      state.dataSlots = slots;
+
+      const synthReq = {
+        original_message: message,
+        intent,
+        is_conversational: false,
+        function_name: resolvedName,
+        parameters: params,
+        data_slots: slots,
+        confidence: analysis.confidence,
+        history: state.history.slice(-6)
+      };
       const synth = await api('POST', '/v1/synthesize', synthReq);
-      turnStep('5. synthesize (clarify)', synth);
+      turnStep('6. synthesize (clarify)', synth);
       verboseSteps.push({ label: '5. Request /v1/synthesize', data: synthReq });
       verboseSteps.push({ label: '6. Response /v1/synthesize', data: synth });
       finishTurn(message, synth, { intent, confidence: analysis.confidence, fName: resolvedName, verbose: verboseSteps });
       return;
     }
 
-    /* 6b) Ejecutar la función contra la DB */
+    /* 6b) Todos los slots llenos → ejecutar */
     let rawData, errorCode = null;
     try{ rawData = await fn.execute(params); }
     catch(e){ errorCode = 'execution_failed'; rawData = 'ERROR: ' + (e?.message || e); }
 
-    turnStep('4. ejecución local ' + resolvedName + '()', errorCode ? { error_code: errorCode, error: rawData } : { raw_data: rawData });
+    turnStep('6. ejecución local ' + resolvedName + '()',
+      errorCode ? { error_code: errorCode, error: rawData } : { raw_data: rawData });
     logEvent('exec', '⚙ ejecutada: ' + resolvedName + '()',
       errorCode ? { parameters: params, error_code: errorCode, error: rawData } : { parameters: params, raw_data: rawData });
 
-    state.collectedData = { intent, function_name: resolvedName, parameters: params, missing_slots: [], status: 'ready_to_execute' };
+    // Slot-filling completado
+    state.pendingFunction = null;
+    state.dataSlots = null;
 
     /* 7) SYNTHESIZE */
-    const sreq = { ...base, raw_data: String(rawData), confidence: analysis.confidence };
+    const sreq = {
+      original_message: message,
+      intent,
+      is_conversational: false,
+      function_name: resolvedName,
+      parameters: params,
+      data_slots: {},
+      raw_data: String(rawData),
+      confidence: analysis.confidence,
+      history: state.history.slice(-6)
+    };
     if(errorCode) sreq.error_code = errorCode;
     const synth = await api('POST', '/v1/synthesize', sreq);
-    turnStep('5. synthesize (GAIA)', synth);
+    turnStep('7. synthesize (respond)', synth);
     verboseSteps.push({ label: '5. Request /v1/synthesize', data: sreq });
     verboseSteps.push({ label: '6. Response /v1/synthesize', data: synth });
     finishTurn(message, synth, { intent, confidence: analysis.confidence, fName: resolvedName, errorCode, rawData: String(rawData), verbose: verboseSteps });
@@ -1094,7 +1053,7 @@ async function processTurn(message){
 function finishTurn(userMessage, synth, meta){
   hideTyping();
   addAssistant(synth.response, { ...meta, mode: synth.mode });
-  turnStep('6. respuesta final', { response: synth.response, mode: synth.mode });
+  turnStep('8. respuesta final', { response: synth.response, mode: synth.mode });
 
   let curl = null;
   if(state.verbose){
@@ -1102,19 +1061,18 @@ function finishTurn(userMessage, synth, meta){
     curl = toCurl(url, {
       session_id: state.sessionId,
       message: userMessage,
-      collected_data: state.collectedDataPrev,
+      function_name: state.pendingFunction || '',
+      data_slots: state.dataSlots || {},
       history: state.history.slice(-6)
     });
   }
   meta.curl = curl;
 
-  endTurnLog({ final_response: synth.response, mode: synth.mode, fuente: meta.local ? 'cliente (local)' : 'GAIA' });
+  endTurnLog({ final_response: synth.response, mode: synth.mode, fuente: 'GAIA' });
 
   state.history.push({ role:'user', content: userMessage, timestamp: new Date().toISOString() });
   if(synth.history_entry) state.history.push(synth.history_entry);
   state.history = state.history.slice(-6);
-
-  if(['respond','error','conversation'].includes(synth.mode)) state.collectedData = null;
 
   renderSession();
 }
@@ -1153,10 +1111,13 @@ const SUGGESTIONS = [
 
 $('#btnNew').onclick = () => {
   state.sessionId = crypto.randomUUID ? crypto.randomUUID() : 'sess-' + Date.now();
-  state.history = []; state.collectedData = null; state.collectedDataPrev = null;
+  state.history = [];
+  state.pendingFunction = null;
+  state.dataSlots = null;
+  state.dataSlotsPrev = null;
   state.turns = [];
   msgs.innerHTML = '';
-  addSystem('info', '🔄 Nueva conversación iniciada.', 'Historial y collected_data reseteados.');
+  addSystem('info', '🔄 Nueva conversación iniciada.', 'Historial y data_slots reseteados.');
   renderSession(); renderHistory();
 };
 

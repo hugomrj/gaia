@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>GAIA · Debug</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0a0a;--panel:#0f0f0f;--card:#141414;--border:#262626;
+    --text:#e5e5e5;--muted:#888;--accent:#00e5a0;--warn:#ffb347;--err:#ff4d4d;
+    --blue:#60a5fa;--mono:ui-monospace,SFMono-Regular,monospace;
+  }
+  body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden}
+  .app{display:grid;grid-template-columns:1fr 420px;height:100dvh}
+  @media(max-width:1100px){.app{grid-template-columns:1fr}.viewer{display:none}}
+
+  /* ============ CHAT ============ */
+  .chat{display:flex;flex-direction:column;height:100dvh;border-right:1px solid var(--border)}
+  .head{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:13px}
+  .head .dot{width:8px;height:8px;border-radius:50%;background:var(--warn)}
+  .head .dot.ok{background:var(--accent)}
+  .head .dot.fail{background:var(--err)}
+  .head b{flex:1}
+  .head small{color:var(--muted);font-family:var(--mono);font-size:11px}
+
+  .feed{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:24px}
+
+  .turn{display:flex;flex-direction:column;gap:10px}
+
+  .user-msg{background:linear-gradient(135deg,#00b37a,#00e5a0);color:#0a0a0a;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:500;align-self:flex-end;max-width:70%;border-bottom-right-radius:4px}
+
+  .card{background:#0d0d0d;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:var(--mono);font-size:12px;line-height:1.5}
+  .card .title{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:600;margin-bottom:5px}
+  .card .name{font-size:13px;color:var(--text);font-weight:600;word-break:break-word}
+  .card .name.planner-name{color:var(--blue)}
+  .card .name.synth-name{color:var(--accent)}
+  .card .params{color:#9ca3af;font-size:11.5px;margin-top:3px;word-break:break-word}
+  .card .sub{color:#6b7280;font-size:10.5px;margin-top:4px}
+
+  .response{font-size:15px;line-height:1.6;color:var(--text);padding:8px 0 8px 14px;border-left:3px solid var(--accent);white-space:pre-wrap;word-wrap:break-word}
+  .response.error{border-left-color:var(--err);color:#ffc9c9}
+
+  .raw-box{margin-top:6px;padding:10px 12px;background:#080808;border:1px solid var(--border);border-radius:6px;font-family:var(--mono);font-size:11px;color:#c8c8c8;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow-y:auto}
+  .raw-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:600;margin-top:8px}
+
+  .sys-msg{padding:8px 12px;border-radius:8px;font-family:var(--mono);font-size:12px;background:rgba(255,179,71,.08);border:1px solid rgba(255,179,71,.3);color:#ffd9a0;align-self:flex-start;max-width:80%}
+  .sys-msg.err{background:rgba(255,77,77,.08);border-color:rgba(255,77,77,.3);color:#ffa8a8}
+
+  .composer{display:flex;gap:10px;padding:16px 20px;border-top:1px solid var(--border)}
+  .composer input{flex:1;background:var(--card);border:1px solid var(--border);color:var(--text);padding:12px 16px;border-radius:10px;font-size:14.5px;font-family:inherit}
+  .composer input:focus{outline:none;border-color:var(--accent)}
+  .composer button{background:var(--accent);color:#0a0a0a;border:none;padding:0 22px;border-radius:10px;font-weight:700;cursor:pointer;font-size:15px}
+  .composer button:disabled{opacity:.4;cursor:not-allowed}
+
+  /* ============ VISOR ============ */
+  .viewer{background:var(--panel);display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+  .v-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:13px}
+  .v-head b{flex:1}
+  .v-head button{background:none;border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer}
+  .v-head button:hover{border-color:var(--accent);color:var(--accent)}
+
+  .v-tabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto}
+  .v-tab{padding:10px 14px;background:none;border:none;color:var(--muted);font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+  .v-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+  .v-panel{flex:1;overflow-y:auto;padding:12px;display:none}
+  .v-panel.active{display:block}
+
+  /* State */
+  .state-box{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:11.5px;margin-bottom:10px}
+  .state-box .row{display:flex;justify-content:space-between;padding:3px 0}
+  .state-box .row span{color:var(--muted)}
+  .state-box pre{margin-top:8px;padding:8px;background:#0a0a0a;border-radius:5px;font-size:11px;color:#c8c8c8;white-space:pre-wrap;word-break:break-word}
+
+  /* Funciones */
+  .fn-item{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:5px;font-family:var(--mono);font-size:11.5px}
+  .fn-item .fn-name{color:var(--accent);font-weight:600;word-break:break-word}
+  .fn-item .fn-desc{color:#9ca3af;margin-top:2px;font-size:10.5px;line-height:1.4}
+  .fn-item .fn-req{color:var(--warn);margin-top:3px;font-size:10px}
+  .fn-item .fn-opt{color:var(--blue);margin-top:2px;font-size:10px}
+  .fn-search{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-family:var(--mono);font-size:11.5px;margin-bottom:10px}
+  .fn-search:focus{outline:none;border-color:var(--accent)}
+  .fn-count{color:var(--muted);font-size:10.5px;margin-bottom:8px;font-family:var(--mono)}
+
+  /* Traffic */
+  .entry{background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;font-family:var(--mono);font-size:11.5px}
+  .entry.err{border-color:rgba(255,77,77,.4)}
+  .entry summary{padding:8px 10px;cursor:pointer;display:flex;gap:8px;align-items:center;list-style:none}
+  .entry summary::-webkit-details-marker{display:none}
+  .entry summary::before{content:'▸';color:var(--muted);flex-shrink:0}
+  .entry[open] summary::before{content:'▾'}
+  .entry .path{flex:1;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .entry.err .path{color:#ffa8a8}
+  .entry .time{color:var(--muted);font-size:10px}
+  .entry .body{padding:0 10px 10px;border-top:1px solid var(--border)}
+  .entry h5{font-size:9.5px;color:var(--muted);text-transform:uppercase;margin:8px 0 4px;font-weight:600;letter-spacing:.05em}
+  .entry pre{background:#0a0a0a;border-radius:5px;padding:8px;font-size:11px;overflow:auto;max-height:200px;white-space:pre-wrap;word-break:break-word;color:#c8c8c8}
+  .copy-bar{display:flex;gap:6px;margin-top:8px}
+  .copy-btn{background:var(--bg);border:1px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:6px;font-family:var(--mono);font-size:10px;cursor:pointer}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .copy-btn.ok{border-color:var(--accent);color:var(--accent)}
+
+  .empty{color:var(--muted);text-align:center;padding:30px;font-size:12px}
+
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="chat">
+    <div class="head">
+      <span class="dot" id="dot"></span>
+      <b>GAIA · Debug</b>
+      <small id="conn">conectando…</small>
+    </div>
+    <div class="feed" id="feed"></div>
+    <form class="composer" id="form">
+      <input id="q" placeholder="Escribí tu mensaje…" autocomplete="off">
+      <button id="btn" type="submit">→</button>
+    </form>
+  </div>
+
+  <aside class="viewer">
+    <div class="v-head">
+      <b>Debug</b>
+      <button onclick="TRAFFIC.clear()">limpiar</button>
+    </div>
+    <div class="v-tabs">
+      <button class="v-tab active" data-tab="traffic">Traffic</button>
+      <button class="v-tab" data-tab="functions">Funciones</button>
+      <button class="v-tab" data-tab="state">State</button>
+    </div>
+    <div class="v-panel active" id="panel-traffic"></div>
+    <div class="v-panel" id="panel-functions">
+      <input class="fn-search" id="fnSearch" placeholder="Buscar función…" autocomplete="off">
+      <div class="fn-count" id="fnCount"></div>
+      <div id="fnList"></div>
+    </div>
+    <div class="v-panel" id="panel-state"></div>
+  </aside>
+
+</div>
+
+<script>
+/* ============================================================
+   CONFIG
+============================================================ */
+const BASE = localStorage.getItem('gaia_url') || 'http://localhost:8080';
+const MAX_TURNS = 3;                          // turnos completos
+const MAX_HISTORY = MAX_TURNS * 2;            // user + assistant por turno
+
+const S = {
+  sessionId: crypto.randomUUID(),
+  pendingFunction: null,
+  dataSlots: null,
+  history: [],
+  busy: false,
+};
+
+/* ============================================================
+   TRAFFIC
+============================================================ */
+const TRAFFIC = {
+  entries: [],
+  push(method, path, req, res, ok = true){
+    this.entries.unshift({ method, path, req, res, ok, ts: new Date() });
+    this.render();
+  },
+  clear(){ this.entries = []; this.render(); },
+  render(){
+    const w = document.getElementById('panel-traffic');
+    if(!this.entries.length){ w.innerHTML = '<p class="empty">Sin tráfico</p>'; return; }
+    w.innerHTML = this.entries.map((e, i) => `
+      <details class="entry ${e.ok ? '' : 'err'}" data-idx="${i}">
+        <summary>
+          <span class="path">${e.method} ${e.path}</span>
+          <span class="time">${e.ts.toLocaleTimeString()}</span>
+        </summary>
+        <div class="body">
+          <h5>Request</h5>
+          <pre>${e.req ? JSON.stringify(e.req, null, 2) : '(vacío)'}</pre>
+          <h5>Response</h5>
+          <pre>${e.res ? JSON.stringify(e.res, null, 2) : '(vacío)'}</pre>
+          <div class="copy-bar">
+            <button class="copy-btn" data-copy="req" data-idx="${i}">Copiar request</button>
+            <button class="copy-btn" data-copy="res" data-idx="${i}">Copiar response</button>
+            <button class="copy-btn" data-copy="both" data-idx="${i}">Copiar todo</button>
+          </div>
+        </div>
+      </details>
+    `).join('');
+
+    // Wire de botones
+    w.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.onclick = (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const entry = TRAFFIC.entries[parseInt(btn.dataset.idx)];
+        const what = btn.dataset.copy;
+        let payload;
+        if(what === 'req'){
+          payload = entry.req ? JSON.stringify(entry.req, null, 2) : '(vacío)';
+        } else if(what === 'res'){
+          payload = entry.res ? JSON.stringify(entry.res, null, 2) : '(vacío)';
+        } else {
+          payload =
+            `// ${entry.method} ${entry.path} · ${entry.ts.toLocaleString()}\n` +
+            `// REQUEST\n${entry.req ? JSON.stringify(entry.req, null, 2) : '(vacío)'}\n\n` +
+            `// RESPONSE\n${entry.res ? JSON.stringify(entry.res, null, 2) : '(vacío)'}`;
+        }
+        copyToClipboard(payload).then(() => {
+          const original = btn.textContent;
+          btn.textContent = '✔ Copiado';
+          btn.classList.add('ok');
+          setTimeout(() => {
+            btn.textContent = original;
+            btn.classList.remove('ok');
+          }, 1400);
+        });
+      };
+    });
+  }
+};
+
+async function copyToClipboard(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); }catch{}
+    ta.remove();
+    return true;
+  }
+}
+
+/* ============================================================
+   STATE
+============================================================ */
+function renderState(){
+  const slots = S.dataSlots ? JSON.stringify(S.dataSlots, null, 1) : '—';
+  const turns = Math.floor(S.history.length / 2);
+  document.getElementById('panel-state').innerHTML = `
+    <div class="state-box">
+      <div class="row"><span>función pendiente</span><b>${S.pendingFunction || '—'}</b></div>
+      <div class="row"><span>turnos</span><b>${turns}/${MAX_TURNS}</b></div>
+      <div class="row"><span>entradas</span><b>${S.history.length}/${MAX_HISTORY}</b></div>
+      <div class="row"><span>sesión</span><b>${S.sessionId.slice(0,8)}</b></div>
+      <div style="margin-top:8px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em">data_slots</div>
+      <pre>${slots}</pre>
+    </div>`;
+}
+
+/* ============================================================
+   CATÁLOGO
+============================================================ */
+const CATALOG = window.CATALOG || {
+  obtener_facturacion_diaria: {
+    description: 'Facturación de un día',
+    required: ['fecha'], optional: {},
+    execute: (p) => JSON.stringify({type:'single',label:'facturación del día '+p.fecha,data:7075000,meta:{unit:'Gs'}})
+  },
+  obtener_facturacion_periodo: {
+    description: 'Facturación de un período',
+    required: ['periodo'], optional: {},
+    execute: (p) => JSON.stringify({type:'single',label:'facturación '+p.periodo,data:126825000,meta:{unit:'Gs'}})
+  },
+  agendar_reunion: {
+    description: 'Agenda una reunión',
+    required: ['doctor','fecha'], optional: {},
+    execute: (p) => JSON.stringify({type:'single',label:'reunión agendada',data:{doctor:p.doctor,fecha:p.fecha}})
+  },
+  obtener_saludo: {
+    description: 'Saludo inicial',
+    required: [], optional: {},
+    execute: () => JSON.stringify({type:'single',label:'saludo',data:'Hola'})
+  }
+};
+const ALIASES = window.FUNCTION_ALIASES || {};
+
+/* ============================================================
+   FUNCIONES TAB
+============================================================ */
+function renderFunctions(filter = ''){
+  const list = document.getElementById('fnList');
+  const count = document.getElementById('fnCount');
+  const q = filter.toLowerCase().trim();
+
+  const entries = Object.entries(CATALOG);
+  const filtered = q
+    ? entries.filter(([name, fn]) =>
+        name.toLowerCase().includes(q) ||
+        (fn.description || '').toLowerCase().includes(q))
+    : entries;
+
+  count.textContent = `${filtered.length} de ${entries.length} funciones`;
+
+  if(!filtered.length){ list.innerHTML = '<p class="empty">Sin resultados</p>'; return; }
+
+  list.innerHTML = filtered.map(([name, fn]) => {
+    const req = (fn.required || []).length ? `required: ${fn.required.join(', ')}` : '';
+    const opt = Object.keys(fn.optional || {}).length ? `optional: ${Object.keys(fn.optional).join(', ')}` : '';
+    return `
+      <div class="fn-item">
+        <div class="fn-name">${escapeHtml(name)}</div>
+        ${fn.description ? `<div class="fn-desc">${escapeHtml(fn.description)}</div>` : ''}
+        ${req ? `<div class="fn-req">${escapeHtml(req)}</div>` : ''}
+        ${opt ? `<div class="fn-opt">${escapeHtml(opt)}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+document.getElementById('fnSearch').addEventListener('input', e => renderFunctions(e.target.value));
+
+/* ============================================================
+   TABS
+============================================================ */
+document.querySelectorAll('.v-tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.v-tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.v-panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+  };
+});
+
+/* ============================================================
+   API
+============================================================ */
+async function api(method, path, body){
+  try{
+    const res = await fetch(BASE + path, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined
+    });
+    const json = await res.json();
+    TRAFFIC.push(method, path, body, json, res.ok);
+    if(!res.ok) throw new Error(json.error || 'HTTP ' + res.status);
+    return json;
+  } catch(e){
+    if(!e.message.includes('HTTP')) TRAFFIC.push(method, path, body, { error: e.message }, false);
+    throw e;
+  }
+}
+
+/* ============================================================
+   FEED
+============================================================ */
+const feed = document.getElementById('feed');
+function scrollDown(){ feed.scrollTop = feed.scrollHeight; }
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function addUser(text){
+  const d = document.createElement('div');
+  d.className = 'user-msg';
+  d.textContent = text;
+  feed.appendChild(d);
+  scrollDown();
+}
+
+function addTurn(analysis, synth, rawData){
+  const wrap = document.createElement('div');
+  wrap.className = 'turn';
+
+  if(analysis){
+    const p = document.createElement('div');
+    p.className = 'card';
+    const func = analysis.function_name || '(sin función)';
+    const params = analysis.parameters && Object.keys(analysis.parameters).length
+      ? JSON.stringify(analysis.parameters)
+      : '{}';
+    p.innerHTML = `
+      <div class="title">Analyzer</div>
+      <div class="name planner-name">${escapeHtml(func)}</div>
+      <div class="params">${escapeHtml(params)}</div>
+      <div class="sub">${escapeHtml(analysis.intent || '—')} · conf ${analysis.confidence ?? '—'}</div>
+    `;
+    wrap.appendChild(p);
+  }
+
+  if(synth){
+    const s = document.createElement('div');
+    s.className = 'card';
+    const modeClass = synth.mode === 'error' ? ' error' : '';
+    let html = `
+      <div class="title">Synthesizer</div>
+      <div class="name synth-name">${escapeHtml(synth.mode || '—')}</div>
+    `;
+    html += `<div class="response${modeClass}" style="margin-top:6px">${escapeHtml(synth.response || '')}</div>`;
+    if(rawData){
+      let body = rawData;
+      try{ body = JSON.stringify(JSON.parse(rawData), null, 2); } catch(e){}
+      html += `<div class="raw-label">raw_data</div><div class="raw-box">${escapeHtml(body)}</div>`;
+    }
+    s.innerHTML = html;
+    wrap.appendChild(s);
+  }
+
+  feed.appendChild(wrap);
+  scrollDown();
+}
+
+function addSys(text, isErr){
+  const d = document.createElement('div');
+  d.className = 'sys-msg' + (isErr ? ' err' : '');
+  d.textContent = text;
+  feed.appendChild(d);
+  scrollDown();
+}
+
+/* ============================================================
+   TURNO
+============================================================ */
+async function turn(message){
+  if(S.busy) return;
+  S.busy = true;
+  document.getElementById('btn').disabled = true;
+  document.getElementById('q').disabled = true;
+  addUser(message);
+
+  let analysis = null, synth = null, rawData = null;
+
+  try{
+    const analyzeReq = {
+      session_id: S.sessionId,
+      message,
+      function_name: S.pendingFunction || '',
+      data_slots: S.dataSlots || {},
+      history: S.history.slice(-MAX_HISTORY)
+    };
+    analysis = await api('POST', '/v1/analyze', analyzeReq);
+
+    const intent = analysis.intent || '';
+    const fName = (analysis.function_name || '').trim();
+    const isConv = analysis.is_conversational === true;
+
+    if(isConv){
+      const synthReq = {
+        original_message: message, intent,
+        is_conversational: true,
+        function_name: fName || 'obtener_conversacion',
+        parameters: analysis.parameters || {},
+        data_slots: {},
+        confidence: analysis.confidence,
+        history: S.history.slice(-MAX_HISTORY)
+      };
+      synth = await api('POST', '/v1/synthesize', synthReq);
+      addTurn(analysis, synth, null);
+      finalize(message, synth);
+      return;
+    }
+
+    const resolved = ALIASES[fName] || fName;
+    const fn = CATALOG[resolved];
+
+    if(!fn){
+      const synthReq = {
+        original_message: message, intent,
+        is_conversational: false,
+        function_name: fName,
+        parameters: analysis.parameters || {},
+        data_slots: {},
+        error_code: 'function_not_found',
+        confidence: analysis.confidence,
+        history: S.history.slice(-MAX_HISTORY)
+      };
+      synth = await api('POST', '/v1/synthesize', synthReq);
+      addTurn(analysis, synth, null);
+      finalize(message, synth);
+      return;
+    }
+
+    const merged = { ...(S.dataSlots || {}), ...(analysis.parameters || {}) };
+    const params = {};
+    for(const [k,v] of Object.entries(merged)){
+      if(v !== null && v !== undefined && v !== '') params[k] = v;
+    }
+
+    let normParams = params;
+    try{
+      const nres = await api('POST', '/v1/normalize', { parameters: params });
+      if(nres?.parameters) normParams = nres.parameters;
+    } catch(e){}
+
+    const slots = {};
+    for(const k of fn.required || []) slots[k] = normParams[k] ?? null;
+    for(const k of Object.keys(fn.optional || {})) if(normParams[k] !== undefined) slots[k] = normParams[k];
+
+    const missing = (fn.required || []).filter(k => slots[k] == null);
+    if(missing.length){
+      S.pendingFunction = resolved;
+      S.dataSlots = slots;
+      renderState();
+      const synthReq = {
+        original_message: message, intent,
+        is_conversational: false,
+        function_name: resolved,
+        parameters: normParams,
+        data_slots: slots,
+        confidence: analysis.confidence,
+        history: S.history.slice(-MAX_HISTORY)
+      };
+      synth = await api('POST', '/v1/synthesize', synthReq);
+      addTurn(analysis, synth, null);
+      finalize(message, synth);
+      return;
+    }
+
+    let errorCode = null;
+    try{ rawData = await fn.execute(normParams); }
+    catch(e){ errorCode = 'execution_failed'; rawData = 'ERROR: ' + e.message; }
+
+    S.pendingFunction = null;
+    S.dataSlots = null;
+    renderState();
+
+    const synthReq = {
+      original_message: message, intent,
+      is_conversational: false,
+      function_name: resolved,
+      parameters: normParams,
+      data_slots: {},
+      raw_data: String(rawData),
+      confidence: analysis.confidence,
+      history: S.history.slice(-MAX_HISTORY)
+    };
+    if(errorCode) synthReq.error_code = errorCode;
+    synth = await api('POST', '/v1/synthesize', synthReq);
+    addTurn(analysis, synth, rawData);
+    finalize(message, synth);
+
+  } catch(e){
+    addSys('❌ ' + (e.message || 'Error'), true);
+  } finally {
+    S.busy = false;
+    document.getElementById('btn').disabled = false;
+    document.getElementById('q').disabled = false;
+    document.getElementById('q').focus();
+    renderState();
+  }
+}
+
+function finalize(userMessage, synth){
+  S.history.push({ role:'user', content: userMessage, timestamp: new Date().toISOString() });
+  if(synth.history_entry) S.history.push(synth.history_entry);
+  S.history = S.history.slice(-MAX_HISTORY);
+  renderState();
+}
+
+/* ============================================================
+   EVENTOS
+============================================================ */
+document.getElementById('form').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = document.getElementById('q').value.trim();
+  if(v){ document.getElementById('q').value = ''; turn(v); }
+});
+
+/* ============================================================
+   INIT
+============================================================ */
+renderFunctions();
+renderState();
+
+(async () => {
+  const dot = document.getElementById('dot'), conn = document.getElementById('conn');
+  try{
+    const h = await api('GET', '/health');
+    dot.className = 'dot ok';
+    conn.textContent = `${h.name} v${h.version}`;
+  } catch {
+    dot.className = 'dot fail';
+    conn.textContent = 'sin conexión';
+  }
+})();
+</script>
+</body>
+</html>

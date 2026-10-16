@@ -146,6 +146,25 @@ func (p *Planner) buildSystemPrompt(
   "confidence": 0.0
 }
 
+## PRIORIDAD 0 — Continuidad con historial
+
+El historial muestra turnos previos con formato función(params).
+
+Si el mensaje actual es una CONTINUACIÓN del turno anterior
+("y X?", "también", "ahora", "el mismo", "ese", respuesta corta),
+usá el historial para completar el pedido:
+- Misma función → cambiar solo el parámetro que menciona el usuario.
+- Nuevo parámetro → agregarlo manteniendo los anteriores.
+
+Ejemplo:
+  Historial: obtener_facturacion_diaria(fecha=hoy)
+  Mensaje: "y ayer?"
+  → obtener_facturacion_diaria con {"fecha":"ayer"}
+
+Si es un tema NUEVO, ignorá el historial y empezá de cero.
+
+
+
 ## PRIORIDAD 1 — data_slots pendientes
 Si "Función pendiente" NO es "(ninguna)" y hay slots en null:
   → Tu tarea es SOLO asignar el valor del mensaje al slot que encaje.
