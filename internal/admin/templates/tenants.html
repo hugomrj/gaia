@@ -1,0 +1,189 @@
+{{ define "tenants.html" }}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAIA · Tenants</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Courier New', ui-monospace, monospace;
+    background: #FAFAFA; color: #0A0A0A;
+    padding: 32px; line-height: 1.5;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 16px; border-bottom: 3px solid #0A0A0A; margin-bottom: 32px;
+  }
+  header h1 { font-size: 28px; font-weight: 900; letter-spacing: -0.5px; }
+  header a {
+    color: #0A0A0A; text-decoration: none; font-weight: 700;
+    padding: 8px 16px; border: 2px solid #0A0A0A;
+  }
+  header a:hover { background: #0A0A0A; color: #FAFAFA; }
+
+  .error {
+    background: #0A0A0A; color: #FAFAFA; padding: 12px 16px;
+    border-left: 4px solid #FF4D4D; margin-bottom: 24px;
+    font-weight: 700;
+  }
+
+  .card {
+    background: #FFFFFF; border: 2px solid #0A0A0A;
+    padding: 24px; margin-bottom: 32px;
+    box-shadow: 6px 6px 0 #0A0A0A;
+  }
+  .card h2 { font-size: 18px; margin-bottom: 20px; font-weight: 900; }
+  
+  label {
+    display: block; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 6px; margin-top: 16px;
+  }
+  label:first-of-type { margin-top: 0; }
+  
+  input, select {
+    width: 100%; padding: 10px 12px;
+    background: #FAFAFA; border: 2px solid #0A0A0A;
+    font-family: inherit; font-size: 14px; color: #0A0A0A;
+  }
+  input:focus, select:focus {
+    outline: none; background: #FFFFFF;
+    box-shadow: 3px 3px 0 #0A0A0A;
+  }
+
+  button {
+    background: #0A0A0A; color: #FAFAFA;
+    border: 2px solid #0A0A0A; padding: 10px 20px;
+    font-family: inherit; font-size: 13px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    cursor: pointer; margin-top: 20px;
+  }
+  button:hover { background: #FAFAFA; color: #0A0A0A; }
+  button.danger { background: #FF4D4D; border-color: #FF4D4D; color: #FAFAFA; }
+  button.danger:hover { background: #FAFAFA; color: #FF4D4D; }
+  button.small { padding: 6px 12px; font-size: 11px; margin-top: 0; }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    background: #FFFFFF; border: 2px solid #0A0A0A;
+  }
+  th, td {
+    padding: 12px 16px; text-align: left;
+    border-bottom: 2px solid #0A0A0A;
+    font-size: 14px;
+  }
+  th {
+    background: #0A0A0A; color: #FAFAFA;
+    font-size: 11px; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  tr:last-child td { border-bottom: none; }
+  td code {
+    background: #FAFAFA; padding: 2px 8px;
+    border: 1px solid #0A0A0A; font-weight: 700;
+  }
+  .badge {
+    display: inline-block; padding: 3px 10px;
+    font-size: 11px; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border: 2px solid #0A0A0A;
+  }
+  .badge.active { background: #00E5A0; }
+  .badge.disabled { background: #FF4D4D; color: #FAFAFA; }
+  .actions { display: flex; gap: 8px; }
+  form.inline { display: inline; }
+  .empty {
+    text-align: center; padding: 48px;
+    color: #666; font-style: italic;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Tenants</h1>
+    <a href="/admin/dashboard">← Dashboard</a>
+  </header>
+
+  {{ if .error }}
+  <div class="error">{{ .error }}</div>
+  {{ end }}
+
+  <div class="card">
+    <h2>+ Nuevo tenant</h2>
+    <form method="POST" action="/admin/tenants">
+      <label for="slug">Slug (URL)</label>
+      <input id="slug" name="slug" placeholder="hugo" required
+             pattern="[a-z0-9-]{3,32}"
+             title="3-32 caracteres: minúsculas, números, guiones">
+
+      <label for="name">Nombre</label>
+      <input id="name" name="name" placeholder="Hugo Dev" required>
+
+      <label for="provider">Provider</label>
+      <select id="provider" name="provider" required>
+        <option value="mistral">Mistral</option>
+        <option value="openai" disabled>OpenAI (próximamente)</option>
+      </select>
+
+      <label for="api_key">API Key del provider</label>
+      <input id="api_key" name="api_key" type="password" required
+             placeholder="sk-...">
+
+      <button type="submit">Crear tenant</button>
+    </form>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:60px;">ID</th>
+        <th>Slug</th>
+        <th>Nombre</th>
+        <th>Provider</th>
+        <th>Status</th>
+        <th style="width:220px;">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .tenants }}
+      <tr>
+        <td><strong>{{ .ID }}</strong></td>
+        <td><code>{{ .Slug }}</code></td>
+        <td>{{ .Name }}</td>
+        <td>{{ .Provider }}</td>
+        <td><span class="badge {{ .Status }}">{{ .Status }}</span></td>
+        <td>
+          <div class="actions">
+            <form class="inline" method="POST"
+                  action="/admin/tenants/{{ .ID }}/rotate"
+                  onsubmit="return confirm('¿Rotar el token de {{ .Slug }}? El anterior dejará de funcionar.')">
+              <button type="submit" class="small">Rotar</button>
+            </form>
+            <form class="inline" method="POST"
+                  action="/admin/tenants/{{ .ID }}/delete"
+                  onsubmit="return confirm('¿Borrar tenant {{ .Slug }}? Esta acción no se puede deshacer.')">
+              <button type="submit" class="danger small">Borrar</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {{ else }}
+      <tr>
+        <td colspan="6" class="empty">
+          No hay tenants todavía. Creá el primero arriba ↑
+        </td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+
+</div>
+</body>
+</html>
+{{ end }}

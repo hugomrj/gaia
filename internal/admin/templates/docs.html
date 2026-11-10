@@ -6,327 +6,82 @@
 <title>GAIA · Documentación API</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  
   :root {
-    --bg:        #0A0A0A;
-    --bg-side:   #0F0F0F;
-    --bg-card:   #141414;
-    --bg-code:   #0D0D0D;
-    --border:    #262626;
-    --text:      #F5F5F5;
-    --muted:     #8A8A8A;
-    --accent:    #00E5A0;
-    --accent-dim:#00B37A;
-    --warn:      #FFB347;
-    --danger:    #FF4D4D;
-    --mono:      ui-monospace, 'JetBrains Mono', Consolas, monospace;
-    --sans:      -apple-system, system-ui, 'Segoe UI', sans-serif;
+    --bg:#0A0A0A;--bg-side:#0F0F0F;--bg-card:#141414;--bg-code:#0D0D0D;
+    --border:#262626;--text:#F5F5F5;--muted:#8A8A8A;--accent:#00E5A0;
+    --accent-dim:#00B37A;--warn:#FFB347;--danger:#FF4D4D;
+    --mono:ui-monospace,'JetBrains Mono',Consolas,monospace;
+    --sans:-apple-system,system-ui,'Segoe UI',sans-serif;
   }
-
-  body {
-    font-family: var(--sans);
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.6;
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    min-height: 100vh;
-  }
-
-  /* ---------- SIDEBAR ---------- */
-  .sidebar {
-    background: var(--bg-side);
-    padding: 32px 0;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-    border-right: 1px solid var(--border);
-  }
-
-  .brand {
-    padding: 0 24px 24px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 24px;
-  }
-
-  .brand h1 {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-
-  .brand p {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 4px;
-  }
-
-  .nav-group {
-    padding: 0 16px;
-    margin-bottom: 24px;
-  }
-
-  .nav-group h4 {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-    padding: 0 8px 8px;
-  }
-
-  .nav-group a {
-    display: block;
-    padding: 8px 12px;
-    color: var(--text);
-    text-decoration: none;
-    font-size: 13px;
-    border-radius: 6px;
-    transition: background 0.15s;
-  }
-
-  .nav-group a:hover {
-    background: var(--bg-card);
-    color: var(--accent);
-  }
-
-  /* ---------- MAIN ---------- */
-  main {
-    max-width: 900px;
-    padding: 48px 56px 96px;
-  }
-
-  h2 {
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    margin-bottom: 8px;
-    margin-top: 56px;
-    padding-top: 32px;
-    border-top: 1px solid var(--border);
-  }
-
-  h2:first-of-type {
-    margin-top: 0;
-    padding-top: 0;
-    border-top: none;
-  }
-
-  h3 {
-    font-size: 18px;
-    font-weight: 600;
-    margin: 32px 0 12px;
-  }
-
-  h4 {
-    font-size: 14px;
-    font-weight: 600;
-    margin: 20px 0 8px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  p {
-    margin-bottom: 16px;
-    color: #D4D4D4;
-  }
-
-  a {
-    color: var(--accent);
-    text-decoration: none;
-  }
-
-  a:hover {
-    text-decoration: underline;
-  }
-
-  /* ---------- CODE ---------- */
-  code {
-    font-family: var(--mono);
-    font-size: 0.9em;
-    background: var(--bg-card);
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: var(--accent);
-  }
-
-  pre {
-    background: var(--bg-code);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px 20px;
-    overflow-x: auto;
-    margin: 12px 0 20px;
-    font-family: var(--mono);
-    font-size: 13px;
-    line-height: 1.6;
-  }
-
-  pre code {
-    background: transparent;
-    padding: 0;
-    color: #E5E5E5;
-  }
-
-  .lang {
-    display: inline-block;
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: var(--muted);
-    background: var(--bg-card);
-    padding: 2px 8px;
-    border-radius: 4px;
-    margin-bottom: 8px;
-    letter-spacing: 0.05em;
-  }
-
-  /* ---------- ENDPOINT ---------- */
-  .endpoint {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px 24px;
-    margin-bottom: 24px;
-  }
-
-  .endpoint-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-
-  .method {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 700;
-    padding: 4px 10px;
-    border-radius: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .method.get { background: #1E3A8A; color: #BFDBFE; }
-  .method.post { background: #166534; color: #BBF7D0; }
-
-  .path {
-    font-family: var(--mono);
-    font-size: 14px;
-    color: var(--text);
-    font-weight: 500;
-  }
-
-  /* ---------- TABLE ---------- */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 16px 0 24px;
-    font-size: 13px;
-  }
-
-  th {
-    text-align: left;
-    padding: 10px 12px;
-    background: var(--bg-card);
-    font-weight: 600;
-    border-bottom: 1px solid var(--border);
-    font-family: var(--mono);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--muted);
-  }
-
-  td {
-    padding: 12px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
-  }
-
-  td code {
-    font-size: 12px;
-  }
-
-  tr:last-child td {
-    border-bottom: none;
-  }
-
-  /* ---------- BADGES ---------- */
-  .badge {
-    display: inline-block;
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .badge.required { background: #7F1D1D; color: #FECACA; }
-  .badge.optional { background: #1E3A8A; color: #BFDBFE; }
-  .badge.ok       { background: #166534; color: #BBF7D0; }
-
-  /* ---------- CALLOUT ---------- */
-  .callout {
-    border-left: 3px solid var(--accent);
-    background: var(--bg-card);
-    padding: 14px 20px;
-    margin: 20px 0;
-    border-radius: 0 6px 6px 0;
-    font-size: 14px;
-  }
-
-  .callout.warn {
-    border-left-color: var(--warn);
-  }
-
-  .callout.danger {
-    border-left-color: var(--danger);
-  }
-
-  .callout strong {
-    color: var(--accent);
-  }
-
-  .callout.warn strong {
-    color: var(--warn);
-  }
-
-  .callout.danger strong {
-    color: var(--danger);
-  }
-
-  /* ---------- DIAGRAM ---------- */
-  .diagram {
-    background: var(--bg-code);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
-    margin: 20px 0;
-    font-family: var(--mono);
-    font-size: 13px;
-    color: #E5E5E5;
-    overflow-x: auto;
-    white-space: pre;
-    line-height: 1.7;
-  }
-
-  /* ---------- SCROLLBAR ---------- */
-  ::-webkit-scrollbar { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: #404040; }
-
-  /* ---------- RESPONSIVE ---------- */
-  @media (max-width: 768px) {
-    body { grid-template-columns: 1fr; }
-    .sidebar { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
-    main { padding: 24px 20px 64px; }
+  body { font-family:var(--sans); background:var(--bg); color:var(--text);
+    line-height:1.6; display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+  .sidebar { background:var(--bg-side); padding:32px 0; position:sticky; top:0;
+    height:100vh; overflow-y:auto; border-right:1px solid var(--border); }
+  .brand { padding:0 24px 24px; border-bottom:1px solid var(--border); margin-bottom:24px; }
+  .brand h1 { font-size:22px; font-weight:700; letter-spacing:-0.02em; }
+  .brand p { font-size:12px; color:var(--muted); margin-top:4px; }
+  .nav-group { padding:0 16px; margin-bottom:24px; }
+  .nav-group h4 { font-size:10px; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.08em; color:var(--muted); padding:0 8px 8px; }
+  .nav-group a { display:block; padding:8px 12px; color:var(--text);
+    text-decoration:none; font-size:13px; border-radius:6px; transition:background 0.15s; }
+  .nav-group a:hover { background:var(--bg-card); color:var(--accent); }
+  main { max-width:900px; padding:48px 56px 96px; }
+  h2 { font-size:28px; font-weight:700; letter-spacing:-0.02em;
+    margin-bottom:8px; margin-top:56px; padding-top:32px; border-top:1px solid var(--border); }
+  h2:first-of-type { margin-top:0; padding-top:0; border-top:none; }
+  h3 { font-size:18px; font-weight:600; margin:32px 0 12px; }
+  h4 { font-size:14px; font-weight:600; margin:20px 0 8px;
+    color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
+  p { margin-bottom:16px; color:#D4D4D4; }
+  ul { margin: 0 0 16px 0; padding-left: 22px; }
+  li { padding: 3px 0; color: #D4D4D4; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  code { font-family:var(--mono); font-size:0.9em; background:var(--bg-card);
+    padding:2px 6px; border-radius:4px; color:var(--accent); }
+  pre { background:var(--bg-code); border:1px solid var(--border); border-radius:8px;
+    padding:16px 20px; overflow-x:auto; margin:12px 0 20px;
+    font-family:var(--mono); font-size:13px; line-height:1.6; }
+  pre code { background:transparent; padding:0; color:#E5E5E5; }
+  .endpoint { background:var(--bg-card); border:1px solid var(--border);
+    border-radius:10px; padding:20px 24px; margin-bottom:24px; }
+  .endpoint-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .method { font-family:var(--mono); font-size:11px; font-weight:700;
+    padding:4px 10px; border-radius:4px; text-transform:uppercase; letter-spacing:0.05em; }
+  .method.get { background:#1E3A8A; color:#BFDBFE; }
+  .method.post { background:#166534; color:#BBF7D0; }
+  .path { font-family:var(--mono); font-size:14px; color:var(--text); font-weight:500; }
+  table { width:100%; border-collapse:collapse; margin:16px 0 24px; font-size:13px; }
+  th { text-align:left; padding:10px 12px; background:var(--bg-card);
+    font-weight:600; border-bottom:1px solid var(--border); font-family:var(--mono);
+    font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); }
+  td { padding:12px; border-bottom:1px solid var(--border); vertical-align:top; }
+  td code { font-size:12px; }
+  tr:last-child td { border-bottom:none; }
+  .badge { display:inline-block; font-family:var(--mono); font-size:11px;
+    font-weight:600; padding:2px 8px; border-radius:4px;
+    text-transform:uppercase; letter-spacing:0.05em; }
+  .badge.required { background:#7F1D1D; color:#FECACA; }
+  .badge.optional { background:#1E3A8A; color:#BFDBFE; }
+  .callout { border-left:3px solid var(--accent); background:var(--bg-card);
+    padding:14px 20px; margin:20px 0; border-radius:0 6px 6px 0; font-size:14px; }
+  .callout.warn { border-left-color:var(--warn); }
+  .callout.danger { border-left-color:var(--danger); }
+  .callout strong { color:var(--accent); }
+  .callout.warn strong { color:var(--warn); }
+  .callout.danger strong { color:var(--danger); }
+  .diagram { background:var(--bg-code); border:1px solid var(--border);
+    border-radius:8px; padding:20px; margin:20px 0; font-family:var(--mono);
+    font-size:13px; color:#E5E5E5; overflow-x:auto; white-space:pre; line-height:1.7; }
+  ::-webkit-scrollbar { width:8px; height:8px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+  ::-webkit-scrollbar-thumb:hover { background:#404040; }
+  @media (max-width:768px) {
+    body { grid-template-columns:1fr; }
+    .sidebar { position:relative; height:auto; border-right:none; border-bottom:1px solid var(--border); }
+    main { padding:24px 20px 64px; }
   }
 </style>
 </head>
@@ -337,14 +92,12 @@
     <h1>GAIA</h1>
     <p>Documentación de API</p>
   </div>
-
   <nav class="nav-group">
     <h4>Introducción</h4>
     <a href="#overview">Overview</a>
     <a href="#philosophy">Filosofía</a>
     <a href="#architecture">Arquitectura</a>
   </nav>
-
   <nav class="nav-group">
     <h4>Endpoints</h4>
     <a href="#health">GET /health</a>
@@ -352,17 +105,17 @@
     <a href="#normalize">POST /v1/normalize</a>
     <a href="#synthesize">POST /v1/synthesize</a>
   </nav>
-
   <nav class="nav-group">
     <h4>Guías</h4>
     <a href="#flow">Flujo completo</a>
+    <a href="#envelope">Envelope de raw_data</a>
     <a href="#history">Manejo del historial</a>
     <a href="#errors">Códigos de error</a>
   </nav>
-
   <nav class="nav-group">
     <h4>Referencia</h4>
     <a href="#models">Modelos de datos</a>
+    <a href="#functions">Vocabulario de funciones</a>
     <a href="#best-practices">Buenas prácticas</a>
   </nav>
 </aside>
@@ -375,30 +128,27 @@
   <p>
     GAIA es un orquestador conversacional para sistemas empresariales.
     Convierte mensajes en lenguaje natural a instrucciones estructuradas,
-    normaliza datos, y genera respuestas naturales. Está diseñada para ser
+    normaliza datos y genera respuestas naturales. Está diseñada para ser
     consumida por cualquier cliente (bot, ERP, CRM) en cualquier lenguaje.
   </p>
-
   <p>
     <strong>Base URL (desarrollo):</strong> <code>http://localhost:8080</code><br>
+    <strong>Base URL (producción):</strong> <code>https://gaia.japo.click</code><br>
     <strong>Formato:</strong> JSON<br>
-    <strong>Autenticación:</strong> por definir (multi-tenant, próximamente)<br>
+    <strong>Idioma del contrato:</strong> castellano (function_name y parámetros)
   </p>
 </section>
 
 <!-- ==================== FILOSOFÍA ==================== -->
 <section id="philosophy">
   <h2>Filosofía</h2>
-  <p>
-    <strong>GAIA piensa, el cliente actúa.</strong>
-  </p>
-  <ul style="list-style: none; padding-left: 0;">
-    <li style="padding: 6px 0;">✓ GAIA es <strong>stateless</strong>: no guarda sesiones.</li>
-    <li style="padding: 6px 0;">✓ GAIA <strong>no conoce</strong> las funciones del cliente.</li>
-    <li style="padding: 6px 0;">✓ GAIA <strong>no ejecuta</strong> código ni toca bases de datos.</li>
-    <li style="padding: 6px 0;">✓ El cliente es el <strong>agente</strong>: orquesta, ejecuta y mantiene el historial.</li>
+  <p><strong>GAIA piensa, el cliente actúa.</strong></p>
+  <ul style="list-style:none;padding-left:0;">
+    <li>✓ GAIA es <strong>stateless</strong>: no guarda sesiones.</li>
+    <li>✓ GAIA <strong>no conoce</strong> las funciones del cliente.</li>
+    <li>✓ GAIA <strong>no ejecuta</strong> código ni toca bases de datos.</li>
+    <li>✓ El cliente es el <strong>agente</strong>: orquesta, ejecuta y mantiene el historial.</li>
   </ul>
-
   <div class="callout">
     <strong>Implicancia clave:</strong> el cliente maneja el historial y el estado
     entre turnos. GAIA solo recibe lo que necesita para procesar cada request.
@@ -408,7 +158,6 @@
 <!-- ==================== ARQUITECTURA ==================== -->
 <section id="architecture">
   <h2>Arquitectura</h2>
-
   <div class="diagram">
 Usuario → Cliente → POST /v1/analyze   → Planner      (¿qué quiere?)
                   → POST /v1/normalize → Normalizer   (opcional)
@@ -418,21 +167,24 @@ Usuario → Cliente → POST /v1/analyze   → Planner      (¿qué quiere?)
 
   <h3>Componentes</h3>
   <table>
-    <tr>
-      <th>Componente</th>
-      <th>Rol</th>
-    </tr>
+    <tr><th>Componente</th><th>Rol</th></tr>
     <tr>
       <td><strong>Planner</strong></td>
-      <td>Analiza lenguaje natural. Devuelve <code>intent</code>, <code>function_name</code>, <code>parameters</code> y <code>confidence</code>.</td>
+      <td>Analiza lenguaje natural. Devuelve <code>intent</code> (frase en castellano),
+      <code>is_conversational</code>, <code>function_name</code>,
+      <code>parameters</code> y <code>confidence</code>.</td>
     </tr>
     <tr>
       <td><strong>Normalizer</strong></td>
-      <td>Convierte valores crudos (<code>"hoy"</code>, <code>"150 mil"</code>) a formato estándar (ISO 8601, números).</td>
+      <td>Convierte valores crudos (<code>"hoy"</code>, <code>"150 mil"</code>,
+      <code>"sí"</code>) a formato estándar (ISO 8601, números, booleanos).
+      No usa LLM: es determinístico.</td>
     </tr>
     <tr>
       <td><strong>Synthesizer</strong></td>
-      <td>Redacta la respuesta final al usuario. Tiene 4 modos: <code>conversation</code>, <code>clarify</code>, <code>respond</code>, <code>error</code>.</td>
+      <td>Redacta la respuesta final al usuario. Tiene 4 modos:
+      <code>conversation</code>, <code>clarify</code>, <code>respond</code>,
+      <code>error</code>.</td>
     </tr>
   </table>
 </section>
@@ -440,15 +192,13 @@ Usuario → Cliente → POST /v1/analyze   → Planner      (¿qué quiere?)
 <!-- ==================== HEALTH ==================== -->
 <section id="health">
   <h2>Health check</h2>
-
   <div class="endpoint">
     <div class="endpoint-header">
       <span class="method get">GET</span>
       <span class="path">/health</span>
     </div>
-    <p style="margin: 0;">Verifica que el servidor está vivo.</p>
+    <p style="margin:0;">Verifica que el servidor está vivo.</p>
   </div>
-
   <h4>Respuesta</h4>
   <pre><code>{
   "name": "GAIA",
@@ -468,35 +218,33 @@ Usuario → Cliente → POST /v1/analyze   → Planner      (¿qué quiere?)
 
   <h4>Request body</h4>
   <table>
+    <tr><th>Campo</th><th>Tipo</th><th>Obligatorio</th><th>Descripción</th></tr>
     <tr>
-      <th>Campo</th>
-      <th>Tipo</th>
-      <th>Obligatorio</th>
-      <th>Descripción</th>
-    </tr>
-    <tr>
-      <td><code>session_id</code></td>
-      <td>string</td>
-      <td><span class="badge optional">opcional</span></td>
-      <td>Identificador de la conversación. Útil para logs. GAIA no lo persiste.</td>
-    </tr>
-    <tr>
-      <td><code>message</code></td>
-      <td>string</td>
+      <td><code>message</code></td><td>string</td>
       <td><span class="badge required">requerido</span></td>
       <td>Mensaje del usuario en lenguaje natural.</td>
     </tr>
     <tr>
-      <td><code>collected_data</code></td>
-      <td>object | null</td>
+      <td><code>session_id</code></td><td>string</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Datos acumulados de turnos previos: <code>intent</code>, <code>function_name</code>, <code>parameters</code>.</td>
+      <td>Identificador de la conversación. Útil para logs. GAIA no lo persiste.</td>
     </tr>
     <tr>
-      <td><code>history</code></td>
-      <td>array</td>
+      <td><code>function_name</code></td><td>string</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Últimos turnos (máx. 3) para dar contexto. Ver <a href="#history">Manejo del historial</a>.</td>
+      <td>Función pendiente del turno anterior (slot filling). Si está seteada,
+      el Planner se enfoca en llenar los <code>data_slots</code> nulos.</td>
+    </tr>
+    <tr>
+      <td><code>data_slots</code></td><td>object</td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Slots acumulados. Un valor <code>null</code> indica "falta este dato".
+      El Planner intenta llenarlo con el mensaje actual.</td>
+    </tr>
+    <tr>
+      <td><code>history</code></td><td>array</td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Últimos turnos (máx. 6 entradas) para dar contexto. Ver <a href="#history">Manejo del historial</a>.</td>
     </tr>
   </table>
 
@@ -505,59 +253,80 @@ Usuario → Cliente → POST /v1/analyze   → Planner      (¿qué quiere?)
 Content-Type: application/json
 
 {
-  "session_id": "abc-123",
   "message": "cuanto facture hoy",
-  "collected_data": null,
+  "session_id": "abc-123",
   "history": []
+}</code></pre>
+
+  <h4>Ejemplo con slot filling</h4>
+  <pre><code>POST /v1/analyze
+Content-Type: application/json
+
+{
+  "message": "el lunes",
+  "function_name": "agendar_reunion",
+  "data_slots": {
+    "doctor": "ramirez",
+    "fecha": null
+  },
+  "history": [...]
 }</code></pre>
 
   <h4>Response</h4>
   <table>
+    <tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr>
     <tr>
-      <th>Campo</th>
-      <th>Tipo</th>
-      <th>Descripción</th>
+      <td><code>intent</code></td><td>string</td>
+      <td>Frase completa en castellano que resume qué quiere el usuario.
+      Ej: <code>"El usuario quiere saber cuánto se facturó hoy"</code>.</td>
     </tr>
     <tr>
-      <td><code>intent</code></td>
-      <td>string</td>
-      <td>Intención general en inglés snake_case. Ej: <code>query_billing</code>.</td>
+      <td><code>is_conversational</code></td><td>boolean</td>
+      <td><code>true</code> si es charla casual (saludo, agradecimiento,
+      despedida, info del bot, mi perfil). <code>false</code> si es acción.</td>
     </tr>
     <tr>
-      <td><code>function_name</code></td>
-      <td>string</td>
-      <td>Función sugerida en inglés snake_case. Ej: <code>get_daily_billing</code>. Vacío si es conversación.</td>
+      <td><code>function_name</code></td><td>string</td>
+      <td>Función sugerida en <strong>castellano snake_case</strong>
+      (<code>verbo_sustantivo[_sufijo]</code>). Ej: <code>obtener_facturacion_diaria</code>.
+      String vacío si el usuario solo mencionó un tema sin acción.</td>
     </tr>
     <tr>
-      <td><code>parameters</code></td>
-      <td>object</td>
+      <td><code>parameters</code></td><td>object</td>
       <td>Valores crudos extraídos del mensaje. Sin normalizar.</td>
     </tr>
     <tr>
-      <td><code>confidence</code></td>
-      <td>number</td>
+      <td><code>confidence</code></td><td>number</td>
       <td>Nivel de confianza (0.0 a 1.0).</td>
     </tr>
     <tr>
-      <td><code>original_input</code></td>
-      <td>string</td>
+      <td><code>original_input</code></td><td>string</td>
       <td>El mensaje original tal como llegó.</td>
     </tr>
   </table>
 
   <h4>Ejemplo de response</h4>
   <pre><code>{
-  "intent": "query_billing",
-  "function_name": "get_daily_billing",
-  "parameters": {"date": "hoy"},
+  "intent": "El usuario quiere saber cuánto se facturó hoy",
+  "is_conversational": false,
+  "function_name": "obtener_facturacion_diaria",
+  "parameters": {"fecha": "hoy"},
   "confidence": 0.95,
   "original_input": "cuanto facture hoy"
 }</code></pre>
 
   <div class="callout warn">
     <strong>Atención:</strong> <code>function_name</code> puede ser un nombre
-    inventado por el LLM que no exista en tu sistema. Es responsabilidad del
-    cliente verificar contra su catálogo antes de ejecutar.
+    inventado por el LLM que no exista en tu catálogo. Es responsabilidad del
+    cliente verificar contra su catálogo antes de ejecutar. Si no existe,
+    devolvé <code>error_code: "function_not_found"</code> al Synthesizer.
+  </div>
+
+  <div class="callout">
+    <strong>Topic sin acción:</strong> si el usuario dice solo
+    <code>"facturacion"</code> (sin verbo), el Planner devuelve
+    <code>function_name: ""</code> y <code>parameters: {"tema": "facturacion"}</code>
+    con <code>confidence: 0.5</code>. Ese es el caso "topic".
   </div>
 </section>
 
@@ -566,59 +335,108 @@ Content-Type: application/json
   <h2>POST /v1/normalize</h2>
   <p>
     Convierte valores crudos a formato estándar. Es <strong>opcional</strong>:
-    el cliente decide cuándo llamarlo. No usa LLM, es determinístico.
+    el cliente decide cuándo llamarlo. <strong>No usa LLM</strong>: es determinístico.
   </p>
 
-  <h4>Qué normaliza</h4>
+  <h4>Qué normaliza (real)</h4>
   <table>
-    <tr>
-      <th>Tipo</th>
-      <th>Entrada</th>
-      <th>Salida</th>
-    </tr>
+    <tr><th>Tipo</th><th>Entrada</th><th>Salida</th></tr>
     <tr>
       <td>Fecha relativa</td>
-      <td><code>"hoy"</code></td>
-      <td><code>"2026-10-14"</code></td>
+      <td><code>"hoy"</code>, <code>"ayer"</code>, <code>"mañana"</code>,
+      <code>"pasado mañana"</code>, <code>"anteayer"</code></td>
+      <td><code>"2026-11-10"</code> (string ISO)</td>
     </tr>
     <tr>
-      <td>Período</td>
-      <td><code>"este mes"</code></td>
-      <td><code>{"from": "2026-10-01", "to": "2026-10-31"}</code></td>
+      <td>Día de semana</td>
+      <td><code>"el lunes"</code>, <code>"lunes"</code>, <code>"el miércoles"</code></td>
+      <td><code>"2026-11-16"</code> (próximo día)</td>
     </tr>
     <tr>
-      <td>Número</td>
-      <td><code>"150 mil"</code></td>
-      <td><code>150000</code></td>
+      <td>Desplazamiento</td>
+      <td><code>"hace 3 días"</code>, <code>"hace 2 semanas"</code>,
+      <code>"hace 1 mes"</code>, <code>"hace 5 años"</code></td>
+      <td><code>"2026-11-07"</code> (string ISO)</td>
+    </tr>
+    <tr>
+      <td>Fecha ISO</td>
+      <td><code>"2026-11-10"</code></td>
+      <td>Se devuelve tal cual</td>
+    </tr>
+    <tr>
+      <td>Fecha con barras</td>
+      <td><code>"10/11/2026"</code> o <code>"10/11/26"</code></td>
+      <td><code>"2026-11-10"</code></td>
+    </tr>
+    <tr>
+      <td>Día + mes</td>
+      <td><code>"10 de noviembre"</code> o <code>"10 de noviembre de 2026"</code></td>
+      <td><code>"2026-11-10"</code></td>
+    </tr>
+    <tr>
+      <td>Año</td>
+      <td><code>"2026"</code></td>
+      <td><code>{"from": "2026-01-01", "to": "2026-12-31"}</code></td>
+    </tr>
+    <tr>
+      <td>Mes</td>
+      <td><code>"noviembre"</code> o <code>"noviembre de 2026"</code></td>
+      <td><code>{"from": "2026-11-01", "to": "2026-11-30"}</code></td>
+    </tr>
+    <tr>
+      <td>Períodos</td>
+      <td><code>"este mes"</code>, <code>"el mes pasado"</code>,
+      <code>"esta semana"</code>, <code>"el año pasado"</code>,
+      <code>"la semana que viene"</code>, etc.</td>
+      <td><code>{"from": "...", "to": "..."}</code></td>
+    </tr>
+    <tr>
+      <td>Número con multiplicador</td>
+      <td><code>"150 mil"</code>, <code>"1.5M"</code>, <code>"2 B"</code>,
+      <code>"1.5 mil millones"</code></td>
+      <td><code>150000</code>, <code>1500000</code>, <code>2000000000</code></td>
+    </tr>
+    <tr>
+      <td>Número con separadores</td>
+      <td><code>"1.500"</code>, <code>"1,500"</code>, <code>"1500,50"</code>,
+      <code>"1.500,50"</code>, <code>"1,500.50"</code></td>
+      <td><code>1500</code>, <code>1500</code>, <code>1500.5</code>,
+      <code>1500.5</code>, <code>1500.5</code></td>
     </tr>
     <tr>
       <td>Moneda</td>
-      <td><code>"150000 Gs."</code></td>
-      <td><code>150000</code></td>
+      <td><code>"150000 Gs."</code>, <code>"$1500"</code>, <code>"USD 100"</code>,
+      <code>"€50"</code>, <code>"₲150000"</code></td>
+      <td>Número sin el símbolo: <code>150000</code>, <code>1500</code>, <code>100</code></td>
     </tr>
     <tr>
       <td>Booleano</td>
-      <td><code>"sí"</code></td>
-      <td><code>true</code></td>
+      <td><code>"sí"</code>, <code>"si"</code>, <code>"no"</code>,
+      <code>"true"</code>, <code>"false"</code>, <code>"1"</code>,
+      <code>"0"</code>, <code>"ok"</code></td>
+      <td><code>true</code> / <code>false</code></td>
     </tr>
     <tr>
       <td>Cédula numérica</td>
       <td><code>1234567</code></td>
-      <td><code>"1234567"</code></td>
+      <td><code>"1234567"</code> (string, sin notación científica)</td>
     </tr>
   </table>
 
+  <div class="callout warn">
+    <strong>Importante:</strong> el Normalizer solo intenta interpretar un valor
+    si <strong>el nombre del campo lo sugiere</strong> o si el valor parece del
+    tipo. Por ejemplo, un campo con nombre <code>is_active</code>,
+    <code>has_stock</code>, <code>activo</code>, etc. se interpreta como booleano.
+    Campos como <code>amount</code>, <code>monto</code>, <code>cantidad</code> se
+    interpretan como número. Ver <a href="#models">Modelos de datos</a>.
+  </div>
+
   <h4>Request body</h4>
   <table>
+    <tr><th>Campo</th><th>Tipo</th><th>Obligatorio</th><th>Descripción</th></tr>
     <tr>
-      <th>Campo</th>
-      <th>Tipo</th>
-      <th>Obligatorio</th>
-      <th>Descripción</th>
-    </tr>
-    <tr>
-      <td><code>parameters</code></td>
-      <td>object</td>
+      <td><code>parameters</code></td><td>object</td>
       <td><span class="badge required">requerido</span></td>
       <td>Parámetros crudos a normalizar.</td>
     </tr>
@@ -630,8 +448,8 @@ Content-Type: application/json
 
 {
   "parameters": {
-    "date": "el lunes",
-    "amount": "150 mil",
+    "fecha": "el lunes",
+    "monto": "150 mil",
     "is_active": "sí"
   }
 }</code></pre>
@@ -639,17 +457,18 @@ Content-Type: application/json
   <h4>Ejemplo de response</h4>
   <pre><code>{
   "parameters": {
-    "date": "2026-10-19",
-    "amount": 150000,
+    "fecha": "2026-11-16",
+    "monto": 150000,
     "is_active": true
   },
-  "normalized": ["date", "amount", "is_active"],
+  "normalized": ["fecha", "monto", "is_active"],
   "not_normalized": []
 }</code></pre>
 
   <div class="callout">
     Los valores que no se pueden normalizar se devuelven <strong>tal cual</strong>
-    y aparecen en <code>not_normalized</code>.
+    y aparecen en <code>not_normalized</code>. Los arrays contienen <strong>nombres
+    de campos</strong> (no los valores).
   </div>
 </section>
 
@@ -661,88 +480,94 @@ Content-Type: application/json
     según los datos que recibe.
   </p>
 
-  <h4>Modos automáticos</h4>
+  <h4>Modos automáticos (lógica real)</h4>
   <table>
-    <tr>
-      <th>Modo</th>
-      <th>Cuándo</th>
-      <th>Ejemplo</th>
-    </tr>
+    <tr><th>Modo</th><th>Condición</th><th>Ejemplo de respuesta</th></tr>
     <tr>
       <td><code>conversation</code></td>
-      <td><code>intent</code> empieza con <code>"conversation"</code></td>
+      <td><code>is_conversational: true</code> <em>o</em> (sin raw_data,
+      sin slots nulos, confidence ≥ 0.7)</td>
       <td>"¡Hola! ¿En qué te ayudo?"</td>
     </tr>
     <tr>
       <td><code>clarify</code></td>
-      <td>Hay <code>missing_slots</code> sin <code>raw_data</code></td>
+      <td>Sin raw_data y (hay <code>data_slots</code> con valor <code>null</code>
+      <em>o</em> confidence &lt; 0.7)</td>
       <td>"¿Para qué fecha querés la cita?"</td>
     </tr>
     <tr>
       <td><code>respond</code></td>
       <td>Hay <code>raw_data</code> y no es error</td>
-      <td>"Tu cita quedó agendada."</td>
+      <td>"Hoy facturaste Gs 126.825.000."</td>
     </tr>
     <tr>
       <td><code>error</code></td>
-      <td><code>error_code</code> presente o <code>raw_data</code> parece error</td>
-      <td>"No pude procesar tu solicitud."</td>
+      <td><code>error_code</code> presente</td>
+      <td>"No pude completar la operación..."</td>
     </tr>
   </table>
 
+  <h4>Bypasses determinísticos (sin LLM)</h4>
+  <p>Estos casos devuelven respuesta hardcodeada, no llaman al LLM:</p>
+  <ul>
+    <li><code>function_name == "obtener_fuera_alcance"</code> → respuesta fija indicando el alcance.</li>
+    <li><code>error_code == "function_not_found"</code> → respuesta fija indicando que no se puede asistir.</li>
+  </ul>
+
   <h4>Request body</h4>
   <table>
+    <tr><th>Campo</th><th>Tipo</th><th>Obligatorio</th><th>Descripción</th></tr>
     <tr>
-      <th>Campo</th>
-      <th>Tipo</th>
-      <th>Obligatorio</th>
-      <th>Descripción</th>
-    </tr>
-    <tr>
-      <td><code>original_message</code></td>
-      <td>string</td>
+      <td><code>original_message</code></td><td>string</td>
       <td><span class="badge required">requerido</span></td>
       <td>Mensaje original del usuario.</td>
     </tr>
     <tr>
-      <td><code>intent</code></td>
-      <td>string</td>
+      <td><code>intent</code></td><td>string</td>
       <td><span class="badge required">requerido</span></td>
-      <td>Intención que devolvió el Planner.</td>
+      <td>Intención que devolvió el Planner (frase completa en castellano).</td>
     </tr>
     <tr>
-      <td><code>function_name</code></td>
-      <td>string</td>
+      <td><code>function_name</code></td><td>string</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Función que se ejecutó.</td>
+      <td>Función que se ejecutó (o se intentó ejecutar).</td>
     </tr>
     <tr>
-      <td><code>parameters</code></td>
-      <td>object</td>
+      <td><code>is_conversational</code></td><td>boolean</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Parámetros usados.</td>
+      <td>Si es <code>true</code>, fuerza modo <code>conversation</code>.</td>
     </tr>
     <tr>
-      <td><code>missing_slots</code></td>
-      <td>array</td>
+      <td><code>parameters</code></td><td>object</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Datos que faltan. Si tiene items → modo <code>clarify</code>.</td>
+      <td>Parámetros usados (idealmente normalizados).</td>
     </tr>
     <tr>
-      <td><code>raw_data</code></td>
-      <td>string</td>
+      <td><code>data_slots</code></td><td>object</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Datos crudos del ERP tras ejecutar. Si está → modo <code>respond</code>.</td>
+      <td>Slots del turno. Un valor <code>null</code> indica que falta y dispara
+      modo <code>clarify</code> (si no hay raw_data).</td>
     </tr>
     <tr>
-      <td><code>error_code</code></td>
-      <td>string</td>
+      <td><code>raw_data</code></td><td>string</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Forzar modo <code>error</code>. Valores: <code>function_not_found</code>, <code>execution_failed</code>, <code>timeout</code>.</td>
+      <td>Datos crudos del ERP tras ejecutar. Si está → modo <code>respond</code>.
+      Idealmente en formato envelope (ver <a href="#envelope">Envelope</a>).</td>
     </tr>
     <tr>
-      <td><code>history</code></td>
-      <td>array</td>
+      <td><code>error_code</code></td><td>string</td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Forzar modo <code>error</code>. Valores: <code>function_not_found</code>,
+      <code>execution_failed</code>, <code>timeout</code>, <code>invalid_parameters</code>.</td>
+    </tr>
+    <tr>
+      <td><code>confidence</code></td><td>number</td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Confianza del Planner. Si es &lt; 0.7 y no hay raw_data, dispara
+      modo <code>clarify</code>.</td>
+    </tr>
+    <tr>
+      <td><code>history</code></td><td>array</td>
       <td><span class="badge optional">opcional</span></td>
       <td>Últimos turnos para dar contexto.</td>
     </tr>
@@ -750,80 +575,82 @@ Content-Type: application/json
 
   <h4>Response</h4>
   <table>
+    <tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr>
     <tr>
-      <th>Campo</th>
-      <th>Tipo</th>
-      <th>Descripción</th>
-    </tr>
-    <tr>
-      <td><code>response</code></td>
-      <td>string</td>
+      <td><code>response</code></td><td>string</td>
       <td>Texto natural para mostrar al usuario.</td>
     </tr>
     <tr>
-      <td><code>history_entry</code></td>
-      <td>object</td>
+      <td><code>history_entry</code></td><td>object</td>
       <td>Entrada lista para agregar al historial del cliente (con timestamp).</td>
     </tr>
     <tr>
-      <td><code>mode</code></td>
-      <td>string</td>
-      <td>Modo usado: <code>conversation</code>, <code>clarify</code>, <code>respond</code>, <code>error</code>.</td>
+      <td><code>mode</code></td><td>string</td>
+      <td>Modo usado: <code>conversation</code>, <code>clarify</code>,
+      <code>respond</code>, <code>error</code>.</td>
+    </tr>
+    <tr>
+      <td><code>data_slots</code></td><td>object</td>
+      <td>Eco de los slots del request (útil para el cliente).</td>
+    </tr>
+    <tr>
+      <td><code>raw_data</code></td><td>string</td>
+      <td>Eco del raw_data del request.</td>
     </tr>
   </table>
 
-  <h4>Ejemplos por modo</h4>
-
-  <h4>Modo <code>clarify</code></h4>
+  <h4>Ejemplo modo <code>respond</code></h4>
   <pre><code>// Request
 {
-  "original_message": "quiero una cita",
-  "intent": "create_appointment",
-  "function_name": "create_appointment",
-  "parameters": {},
-  "missing_slots": ["date", "doctor"],
+  "original_message": "cuanto facture hoy",
+  "intent": "El usuario quiere saber cuánto se facturó hoy",
+  "function_name": "obtener_facturacion_diaria",
+  "parameters": {"fecha": "2026-11-10"},
+  "confidence": 0.95,
+  "raw_data": "{\"type\":\"currency\",\"label\":\"Facturación de hoy\",\"data\":126825000,\"meta\":{\"unit\":\"Gs\"}}",
   "history": []
 }
 
 // Response
 {
-  "response": "¿Para qué fecha y con qué doctor querés la cita?",
+  "response": "Hoy facturaste Gs 126.825.000.",
   "history_entry": {
     "role": "assistant",
-    "summary": "pedí date, doctor",
-    "timestamp": "2026-10-14T10:30:00-03:00"
+    "summary": "obtener_facturacion_diaria(fecha=2026-11-10)",
+    "timestamp": "2026-11-10T14:32:00-03:00"
+  },
+  "mode": "respond",
+  "raw_data": "..."
+}</code></pre>
+
+  <h4>Ejemplo modo <code>clarify</code></h4>
+  <pre><code>// Request
+{
+  "original_message": "quiero una cita",
+  "intent": "El usuario quiere agendar una reunión",
+  "function_name": "agendar_reunion",
+  "data_slots": {"doctor": null, "fecha": null},
+  "confidence": 0.6,
+  "history": []
+}
+
+// Response
+{
+  "response": "¿Con qué doctor y para qué fecha querés la reunión?",
+  "history_entry": {
+    "role": "assistant",
+    "summary": "pedí doctor, fecha en agendar_reunion()",
+    "timestamp": "2026-11-10T14:32:00-03:00"
   },
   "mode": "clarify"
 }</code></pre>
 
-  <h4>Modo <code>respond</code></h4>
-  <pre><code>// Request
-{
-  "original_message": "cuanto facture hoy",
-  "intent": "query_billing",
-  "function_name": "get_daily_billing",
-  "parameters": {"date": "hoy"},
-  "raw_data": "150000",
-  "history": []
-}
-
-// Response
-{
-  "response": "Hoy has facturado un total de 150.000 Gs.",
-  "history_entry": {
-    "role": "assistant",
-    "summary": "respondí sobre query_billing",
-    "timestamp": "2026-10-14T10:30:15-03:00"
-  },
-  "mode": "respond"
-}</code></pre>
-
-  <h4>Modo <code>error</code></h4>
+  <h4>Ejemplo modo <code>error</code></h4>
   <pre><code>// Request
 {
   "original_message": "quiero una cita",
-  "intent": "create_appointment",
-  "function_name": "create_appointment",
+  "intent": "El usuario quiere agendar una reunión",
+  "function_name": "agendar_reunion",
   "raw_data": "ERROR: timeout conectando al ERP",
   "error_code": "execution_failed",
   "history": []
@@ -834,70 +661,114 @@ Content-Type: application/json
   "response": "No pude completar la operación en este momento. ¿Podés intentar de nuevo en unos minutos?",
   "history_entry": {
     "role": "assistant",
-    "summary": "error al procesar create_appointment",
-    "timestamp": "2026-10-14T10:30:30-03:00"
+    "summary": "error execution_failed en agendar_reunion",
+    "timestamp": "2026-11-10T14:32:30-03:00"
   },
   "mode": "error"
 }</code></pre>
 </section>
 
+<!-- ==================== ENVELOPE ==================== -->
+<section id="envelope">
+  <h2>Envelope de raw_data</h2>
+  <p>
+    El campo <code>raw_data</code> acepta cualquier string. Si le pasás un
+    <strong>envelope</strong> JSON, el Synthesizer extrae la información de forma
+    estructurada y la usa para redactar mejor la respuesta. Si no es envelope,
+    se pasa el raw tal cual al LLM.
+  </p>
+
+  <h4>Formato del envelope</h4>
+  <pre><code>{
+  "type":  "currency" | "number" | "text" | "list" | "...",
+  "label": "Facturación de hoy",
+  "data":  126825000,
+  "meta":  {"unit": "Gs", "extra": "..."}
+}</code></pre>
+
+  <table>
+    <tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr>
+    <tr>
+      <td><code>type</code></td><td>string</td>
+      <td>Tipo semántico. El Synthesizer lo usa para el prompt.</td>
+    </tr>
+    <tr>
+      <td><code>label</code></td><td>string</td>
+      <td>Descripción legible. Se incluye en el prompt como "descripción".</td>
+    </tr>
+    <tr>
+      <td><code>data</code></td><td>any</td>
+      <td>El valor. Puede ser número, string, array, objeto.</td>
+    </tr>
+    <tr>
+      <td><code>meta</code></td><td>object</td>
+      <td>Metadata opcional (unidad, formato, etc.).</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <strong>Recomendación:</strong> usar siempre envelope. Mejora la calidad
+    de la respuesta y evita alucinaciones sobre qué representa el número.
+  </div>
+</section>
+
 <!-- ==================== FLUJO ==================== -->
 <section id="flow">
   <h2>Flujo completo de un turno</h2>
-
   <div class="diagram">
 1. Usuario escribe un mensaje
 
 2. Cliente → POST /v1/analyze
-   → {intent, function_name, parameters, confidence}
+   → {intent, is_conversational, function_name, parameters, confidence}
 
 3. Cliente:
-   a. Combina parameters con collected_data
-   b. Verifica si function_name existe en su catálogo
-   c. Calcula missing_slots comparando contra el contrato
-   d. Si no hay missing → ejecuta la función → obtiene raw_data
+   a. Verifica si function_name existe en su catálogo
+   b. Calcula data_slots faltantes (los que el Planner marcó como null)
+   c. Si faltan → llama a /v1/synthesize con data_slots null (modo clarify)
+   d. Si no faltan → ejecuta la función → obtiene raw_data
 
-4. Cliente → POST /v1/synthesize (opcional: /v1/normalize antes)
+4. Cliente → (opcional) POST /v1/normalize
+   → limpia parámetros crudos antes de ejecutar la función
+
+5. Cliente → POST /v1/synthesize (con raw_data o error_code)
    → {response, history_entry, mode}
 
-5. Cliente:
+6. Cliente:
    a. Muestra response al usuario
    b. Agrega history_entry al historial local
-   c. Recorta el historial a 6 entradas (3 turnos)
-   d. Guarda collected_data actualizado</div>
+   c. Recorta el historial a 6 entradas
+   d. Si mode es respond/error/conversation → limpia data_slots</div>
 
   <h3>Multi-turno (slot filling)</h3>
-
   <div class="diagram">
 Turno 1:
   Usuario: "quiero una cita"
-  Planner: {function_name: "create_appointment", parameters: {}}
-  Cliente: calcula missing = ["date", "doctor"]
-  Synthesizer: "¿Para qué fecha y con qué doctor?"
+  Planner: {function_name: "agendar_reunion", data_slots: {doctor: null, fecha: null}}
+  Synthesizer: "¿Con qué doctor y para qué fecha?"
 
-Turno 2:
+Turno 2 (con slots del turno anterior):
   Usuario: "el lunes con el doctor ramirez"
-  Planner: {function_name: "create_appointment", parameters: {"date": "el lunes", "doctor": "ramirez"}}
-  Cliente: missing = [] → ejecuta → raw_data = "OK"
-  Synthesizer: "Tu cita quedó agendada para el lunes con el doctor Ramirez."</div>
+  Planner: {function_name: "agendar_reunion",
+            parameters: {fecha: "el lunes", doctor: "ramirez"}}
+  Cliente: normaliza → ejecuta → obtiene raw_data
+  Synthesizer: "Tu cita quedó agendada para el lunes con el doctor Ramírez."</div>
 </section>
 
 <!-- ==================== HISTORIAL ==================== -->
 <section id="history">
   <h2>Manejo del historial</h2>
-
   <p>
     El cliente es responsable de mantener el historial y enviarlo en cada
     request. GAIA no lo persiste.
   </p>
 
   <h3>Reglas</h3>
-  <ul style="list-style: none; padding-left: 0;">
-    <li style="padding: 6px 0;">• Máximo <strong>6 entradas</strong> (3 turnos de user + assistant).</li>
-    <li style="padding: 6px 0;">• Se recorta <strong>al final del turno</strong>, después del <code>/v1/synthesize</code>.</li>
-    <li style="padding: 6px 0;">• El <code>content</code> del user es el mensaje textual.</li>
-    <li style="padding: 6px 0;">• El <code>summary</code> del assistant es un resumen corto (lo genera GAIA).</li>
-    <li style="padding: 6px 0;">• Siempre incluir <code>timestamp</code> en cada entrada.</li>
+  <ul>
+    <li>Máximo <strong>6 entradas</strong> (3 turnos de user + assistant).</li>
+    <li>Se recorta <strong>al final del turno</strong>, después del <code>/v1/synthesize</code>.</li>
+    <li>El <code>content</code> del user es el mensaje textual.</li>
+    <li>El <code>summary</code> del assistant es un resumen corto (lo genera GAIA).</li>
+    <li>Siempre incluir <code>timestamp</code> en cada entrada.</li>
   </ul>
 
   <h3>Estructura</h3>
@@ -906,12 +777,12 @@ Turno 2:
     {
       "role": "user",
       "content": "quiero una cita",
-      "timestamp": "2026-10-14T10:00:00Z"
+      "timestamp": "2026-11-10T10:00:00Z"
     },
     {
       "role": "assistant",
-      "summary": "pedí date, doctor",
-      "timestamp": "2026-10-14T10:00:02Z"
+      "summary": "pedí doctor, fecha en agendar_reunion()",
+      "timestamp": "2026-11-10T10:00:02Z"
     }
   ]
 }</code></pre>
@@ -929,53 +800,34 @@ Turno 2:
 
   <h3>Códigos HTTP</h3>
   <table>
-    <tr>
-      <th>Código</th>
-      <th>Significado</th>
-    </tr>
-    <tr>
-      <td><code>200</code></td>
-      <td>OK. Todo bien.</td>
-    </tr>
-    <tr>
-      <td><code>400</code></td>
-      <td>Request inválido. Falta un campo o tiene tipo incorrecto.</td>
-    </tr>
-    <tr>
-      <td><code>401</code></td>
-      <td>No autorizado (multi-tenant, próximamente).</td>
-    </tr>
-    <tr>
-      <td><code>500</code></td>
-      <td>Error interno. Revisar logs del servidor.</td>
-    </tr>
-    <tr>
-      <td><code>503</code></td>
-      <td>Servicio no disponible (LLM caído, cuota agotada).</td>
-    </tr>
+    <tr><th>Código</th><th>Significado</th></tr>
+    <tr><td><code>200</code></td><td>OK. Todo bien.</td></tr>
+    <tr><td><code>400</code></td><td>Request inválido. Falta un campo o tiene tipo incorrecto.</td></tr>
+    <tr><td><code>500</code></td><td>Error interno (LLM caído, error de parseo). Revisar logs.</td></tr>
   </table>
 
   <h3>Error codes en <code>/v1/synthesize</code></h3>
   <table>
-    <tr>
-      <th>error_code</th>
-      <th>Cuándo usar</th>
-    </tr>
+    <tr><th>error_code</th><th>Cuándo usar</th><th>Comportamiento</th></tr>
     <tr>
       <td><code>function_not_found</code></td>
       <td>El <code>function_name</code> que devolvió el Planner no existe en tu catálogo.</td>
+      <td>Respuesta hardcodeada (no llama al LLM).</td>
     </tr>
     <tr>
       <td><code>execution_failed</code></td>
       <td>La función existe pero falló al ejecutar.</td>
+      <td>Disculpa genérica generada por el LLM.</td>
     </tr>
     <tr>
       <td><code>timeout</code></td>
       <td>El ERP no respondió a tiempo.</td>
+      <td>Disculpa genérica + sugerencia de reintentar.</td>
     </tr>
     <tr>
       <td><code>invalid_parameters</code></td>
       <td>Los parámetros no cumplen el formato esperado.</td>
+      <td>Disculpa genérica (default).</td>
     </tr>
   </table>
 </section>
@@ -992,17 +844,125 @@ Turno 2:
   "timestamp": "RFC3339"
 }</code></pre>
 
-  <h3>CollectedData</h3>
+  <h3>DataSlots</h3>
+  <p>
+    Mapa de parámetros pendientes. Un valor <code>null</code> indica "falta este
+    dato" y dispara modo <code>clarify</code>. Un valor presente indica "ya lo tengo".
+  </p>
   <pre><code>{
-  "intent": "string",
-  "function_name": "string",
-  "parameters": {},
-  "missing_slots": [],
-  "status": "ready_to_execute" | "waiting_for_data"
+  "doctor": "ramirez",
+  "fecha": null
 }</code></pre>
+
+  <h3>Campos que disparan normalización</h3>
+  <p>El Normalizer mira el <strong>nombre del campo</strong> para decidir cómo interpretar el valor:</p>
+  <table>
+    <tr><th>Tipo</th><th>Campos que lo disparan</th></tr>
+    <tr>
+      <td>Fecha / período</td>
+      <td><code>date</code>, <code>fecha</code>, <code>period</code>, <code>periodo</code>,
+      <code>from</code>, <code>desde</code>, <code>to</code>, <code>hasta</code>,
+      <code>start</code>, <code>end</code>, <code>inicio</code>, <code>fin</code></td>
+    </tr>
+    <tr>
+      <td>Número</td>
+      <td><code>amount</code>, <code>monto</code>, <code>cantidad</code>,
+      <code>quantity</code>, <code>count</code>, <code>qty</code>,
+      <code>price</code>, <code>precio</code>, <code>saldo</code>,
+      <code>balance</code>, <code>cost</code>, <code>costo</code></td>
+    </tr>
+    <tr>
+      <td>Moneda</td>
+      <td><code>total</code>, <code>monto_total</code>, <code>importe</code>,
+      <code>subtotal</code></td>
+    </tr>
+    <tr>
+      <td>Booleano</td>
+      <td>prefijos: <code>is_*</code>, <code>has_*</code>, <code>tiene_*</code>,
+      <code>es_*</code>, <code>esta_*</code>, <code>está_*</code>.
+      exactos: <code>active</code>, <code>enabled</code>, <code>activo</code>,
+      <code>habilitado</code></td>
+    </tr>
+    <tr>
+      <td>Cédula / doc</td>
+      <td><code>cedula</code>, <code>documento</code>, <code>document</code>,
+      <code>ci</code>, <code>ruc</code>, <code>dni</code>,
+      <code>id_number</code></td>
+    </tr>
+  </table>
 </section>
 
-<!-- ==================== BUENAS PRÁCTICAS ==================== -->
+<!-- ==================== FUNCIONES ==================== -->
+<section id="functions">
+  <h2>Vocabulario de funciones (Planner)</h2>
+  <p>
+    El Planner emite <code>function_name</code> usando un vocabulario cerrado
+    en castellano. Formato: <code>verbo_sustantivo[_sufijo]</code> (máx. 3 partes).
+  </p>
+
+  <h3>Verbos permitidos</h3>
+  <p>
+    <code>obtener_</code>, <code>listar_</code>, <code>buscar_</code>,
+    <code>verificar_</code>, <code>crear_</code>, <code>actualizar_</code>,
+    <code>eliminar_</code>, <code>calcular_</code>, <code>comparar_</code>,
+    <code>generar_</code>, <code>enviar_</code>, <code>agendar_</code>
+  </p>
+
+  <h3>Sustantivos permitidos</h3>
+  <p>
+    <code>facturacion</code>, <code>clientes</code>, <code>productos</code>,
+    <code>vendedores</code>, <code>categorias</code>, <code>ciudad</code>,
+    <code>saldos</code>, <code>caja</code>, <code>posicion</code>,
+    <code>cuentas</code>, <code>margen</code>, <code>kpis</code>,
+    <code>proveedores</code>, <code>empleados</code>, <code>departamentos</code>,
+    <code>inventario</code>, <code>stock</code>, <code>ordenes</code>,
+    <code>reuniones</code>, <code>resultados</code>, <code>tareas</code>,
+    <code>temas</code>, <code>analisis</code>, <code>informes</code>,
+    <code>reportes</code>
+  </p>
+
+  <h3>Claves de parámetros permitidas</h3>
+  <p>
+    <code>fecha</code>, <code>periodo</code>, <code>meses</code>,
+    <code>cliente</code>, <code>ciudad</code>, <code>producto</code>,
+    <code>vendedor</code>, <code>monto</code>, <code>cantidad</code>,
+    <code>proveedor</code>, <code>estado</code>, <code>limite</code>,
+    <code>sucursal</code>, <code>tema</code>
+  </p>
+
+  <h3>Funciones especiales</h3>
+  <table>
+    <tr><th>Nombre</th><th>Cuándo aparece</th></tr>
+    <tr>
+      <td><code>obtener_saludo</code>, <code>obtener_agradecimiento</code>,
+      <code>obtener_despedida</code>, <code>obtener_info_bot</code>,
+      <code>obtener_mi_perfil</code></td>
+      <td>Cuando <code>is_conversational: true</code>.</td>
+    </tr>
+    <tr>
+      <td><code>obtener_desconocido</code></td>
+      <td>Mensaje ambiguo sin contexto claro.</td>
+    </tr>
+    <tr>
+      <td><code>obtener_fuera_alcance</code></td>
+      <td>Pregunta fuera del dominio del sistema.</td>
+    </tr>
+    <tr>
+      <td>"" (string vacío)</td>
+      <td>Topic sin acción: usuario mencionó un sustantivo pero sin pedir nada
+      (ej: <code>"facturacion"</code>). Viene con <code>parameters: {"tema": "..."}</code>.</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <strong>Nota:</strong> el vocabulario es la fuente de verdad del contrato.
+    Si tu sistema usa otros nombres, mapealos: la documentación de tu cliente
+    puede usar <code>get_daily_billing</code> y mapear internamente a
+    <code>obtener_facturacion_diaria</code>.
+  </div>
+</section>
+
+<!-- ==================== BEST PRACTICES ==================== -->
 <section id="best-practices">
   <h2>Buenas prácticas</h2>
 
@@ -1013,52 +973,53 @@ Turno 2:
     existe, mandá <code>error_code: "function_not_found"</code> al Synthesizer.
   </p>
 
-  <h3>2. Filtrar valores placeholder</h3>
+  <h3>2. Usar data_slots para slot filling</h3>
   <p>
-    El LLM a veces devuelve valores genéricos como <code>"doctor"</code>,
-    <code>"value"</code>, <code>"unknown"</code>. Descartalos antes de ejecutar
-    y agregalos a <code>missing_slots</code>.
+    Si tu función requiere datos que el usuario no dio en un mensaje, guardá
+    <code>function_name</code> y <code>data_slots</code> con los faltantes en
+    <code>null</code>. En el siguiente turno, mandalos en el request de
+    <code>/v1/analyze</code> — el Planner se enfocará en llenarlos.
   </p>
 
-  <h3>3. Recortar el historial</h3>
+  <h3>3. Usar envelope en raw_data</h3>
+  <p>
+    Envolvé la respuesta de tu función en
+    <code>{"type", "label", "data", "meta"}</code>. Mejora la calidad de la
+    respuesta final y reduce alucinaciones numéricas.
+  </p>
+
+  <h3>4. Recortar el historial</h3>
   <p>
     Máximo 6 entradas. Si no recortás, el prompt al LLM crece sin control y
     sube el costo por request.
   </p>
 
-  <h3>4. Manejar errores del ERP</h3>
+  <h3>5. Manejar errores del ERP</h3>
   <p>
     Si la ejecución falla (timeout, excepción), mandá
     <code>error_code</code> al Synthesizer. Así GAIA responde con una
     disculpa amable en vez de dejar al usuario sin respuesta.
   </p>
 
-  <h3>5. No normalizar dos veces</h3>
+  <h3>6. No normalizar dos veces</h3>
   <p>
     Si llamás a <code>/v1/normalize</code>, usá los parámetros normalizados
     para ejecutar la función Y para el Synthesizer. No normalices por un lado
     y ejecutes por el otro.
   </p>
 
-  <h3>6. Resetear collected_data</h3>
+  <h3>7. Limpiar data_slots al cerrar turno</h3>
   <p>
     Cuando el modo del Synthesizer es <code>respond</code>, <code>error</code>
     o <code>conversation</code>, el turno está cerrado. Reseteá
-    <code>collected_data</code> a <code>null</code>.
-  </p>
-
-  <h3>7. Session ID (opcional)</h3>
-  <p>
-    Generá un UUID al iniciar cada conversación y usalo en todos los requests.
-    Sirve para logs y para multi-tenant futuro. GAIA no lo persiste.
+    <code>data_slots</code> a <code>null</code> (o vacío) en el próximo request.
   </p>
 </section>
 
-<footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px;">
+<footer style="margin-top:64px;padding-top:24px;border-top:1px solid var(--border);color:var(--muted);font-size:13px;">
   GAIA · Documentación de API · v0.1.0
 </footer>
 
 </main>
-
 </body>
 </html>

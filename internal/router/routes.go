@@ -4,16 +4,19 @@ package router
 import (
 	"log"
 	"net/http"
+	"sort"
 
 	"github.com/gin-gonic/gin"
 
+	adminPkg "gaia/internal/admin"
 	"gaia/internal/admin/service"
 	"gaia/internal/brain"
 	"gaia/internal/handlers"
+	"gaia/internal/tenant"
 )
 
 // Setup configura y devuelve el router de Gin con todas las rutas registradas
-func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain) *gin.Engine {
+func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *tenant.Store) *gin.Engine {
 	router := gin.Default()
 
 	// 1. Configuración de vistas y estáticos (Admin Panel)
@@ -21,10 +24,10 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain) *gin.Eng
 	router.Static("/admin/static", "internal/admin/static")
 	router.Static("/examples", "examples")
 
-
 	// 2. Inicializar Handlers
 	apiHandler := handlers.NewAPIHandler(gaiaBrain)
 	healthHandler := handlers.NewHealthHandler()
+	tenantsHandler := adminPkg.NewTenantsHandler(store)
 
 	// 3. Rutas Públicas y de Salud
 	router.GET("/health", healthHandler.Health)
@@ -38,20 +41,14 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain) *gin.Eng
 	})
 
 	router.GET("/docs", func(c *gin.Context) {
-  	  c.HTML(http.StatusOK, "docs.html", nil)
+		c.HTML(http.StatusOK, "docs.html", nil)
 	})
-
 
 	// 4. API de GAIA (Aquí entran y salen los datos del cliente)
 	v1 := router.Group("/v1")
 	{
-		// Cerebro 1: Analiza la intención y devuelve function_name + parámetros
 		v1.POST("/analyze", apiHandler.Analyze)
-
-		// Cerebro 2: Sintetiza la respuesta final con los datos del cliente
 		v1.POST("/synthesize", apiHandler.Synthesize)
-
-		// Normalizer: convierte valores crudos a formato estándar
 		v1.POST("/normalize", apiHandler.Normalize)
 	}
 
@@ -82,20 +79,51 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain) *gin.Eng
 	})
 
 	// 6. Panel de Administración (Rutas protegidas)
-	admin := router.Group("/admin")
-	admin.Use(requireAuth)
+	adminGroup := router.Group("/admin")
+	adminGroup.Use(requireAuth)
 	{
-		admin.GET("/dashboard", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "dashboard.html", gin.H{"user": adminUser})
+		adminGroup.GET("/dashboard", func(c *gin.Context) {
+			tenants := store.List()
+
+			tenantCount := len(tenants)
+			activeCount := 0
+			providers := make(map[string]bool)
+			for _, t := range tenants {
+				if t.IsActive() {
+					activeCount++
+				}
+				providers[t.Provider] = true
+			}
+
+			// Ordenar por ID descendente (más recientes primero)
+			sort.Slice(tenants, func(i, j int) bool {
+				return tenants[i].ID > tenants[j].ID
+			})
+			recent := tenants
+			if len(recent) > 5 {
+				recent = recent[:5]
+			}
+
+			c.HTML(http.StatusOK, "dashboard.html", gin.H{
+				"user":              adminUser,
+				"tenantCount":       tenantCount,
+				"tenantActiveCount": activeCount,
+				"providerCount":     len(providers),
+				"recentTenants":     recent,
+			})
 		})
 
-		admin.POST("/logout", func(c *gin.Context) {
+		adminGroup.POST("/logout", func(c *gin.Context) {
 			c.SetCookie("gaia_session", "", -1, "/", "", false, true)
 			c.Redirect(http.StatusFound, "/admin/login")
 		})
+
+		// Tenants
+		adminGroup.GET("/tenants", tenantsHandler.List)
+		adminGroup.POST("/tenants", tenantsHandler.Create)
+		adminGroup.POST("/tenants/:id/delete", tenantsHandler.Delete)
+		adminGroup.POST("/tenants/:id/rotate", tenantsHandler.Rotate)
 	}
-
-
 
 	return router
 }
@@ -110,4 +138,3 @@ func requireAuth(c *gin.Context) {
 	}
 	c.Next()
 }
-

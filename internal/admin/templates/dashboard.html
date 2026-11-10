@@ -1,60 +1,228 @@
+{{ define "dashboard.html" }}
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard · GAIA</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="/admin/static/css/admin.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · GAIA</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Courier New', ui-monospace, monospace;
+    background: #FAFAFA; color: #0A0A0A;
+    padding: 0; line-height: 1.5;
+  }
+
+  /* Header global */
+  .site-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 32px; border-bottom: 3px solid #0A0A0A;
+    background: #FFFFFF;
+  }
+  .brand {
+    font-size: 24px; font-weight: 900; letter-spacing: -1px;
+  }
+  .site-header nav {
+    display: flex; gap: 12px; align-items: center;
+  }
+  .site-header nav a {
+    color: #0A0A0A; text-decoration: none; font-weight: 700;
+    padding: 8px 16px; border: 2px solid #0A0A0A; font-size: 13px;
+  }
+  .site-header nav a:hover {
+    background: #0A0A0A; color: #FAFAFA;
+  }
+  .site-header nav form { display: inline; }
+  .site-header nav button {
+    background: transparent; color: #0A0A0A;
+    border: 2px solid #0A0A0A; padding: 8px 16px;
+    font-family: inherit; font-size: 13px; font-weight: 700;
+    cursor: pointer;
+  }
+  .site-header nav button:hover {
+    background: #0A0A0A; color: #FAFAFA;
+  }
+
+  /* Contenido */
+  main { max-width: 1100px; margin: 0 auto; padding: 40px 32px; }
+
+  .page-header {
+    padding-bottom: 20px; border-bottom: 3px solid #0A0A0A;
+    margin-bottom: 32px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+  .page-header h1 {
+    font-size: 36px; font-weight: 900; letter-spacing: -1px;
+  }
+  .page-header p {
+    color: #666; font-size: 13px; margin-top: 4px;
+  }
+  .page-header .user {
+    font-size: 12px; color: #666; text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* KPI grid */
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px; margin-bottom: 40px;
+  }
+  .kpi-card {
+    background: #FFFFFF; border: 2px solid #0A0A0A;
+    padding: 20px; box-shadow: 4px 4px 0 #0A0A0A;
+  }
+  .kpi-card h2 {
+    font-size: 11px; font-weight: 900; text-transform: uppercase;
+    letter-spacing: 1px; color: #666; margin-bottom: 12px;
+  }
+  .kpi-value {
+    font-size: 32px; font-weight: 900; letter-spacing: -1px;
+  }
+  .kpi-value.online { color: #00A870; }
+  .kpi-value.offline { color: #FF4D4D; }
+  .kpi-hint {
+    font-size: 11px; color: #666; margin-top: 4px; text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Sección de tenants */
+  .section {
+    background: #FFFFFF; border: 2px solid #0A0A0A;
+    padding: 0; box-shadow: 6px 6px 0 #0A0A0A;
+  }
+  .section-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 20px;
+    background: #0A0A0A; color: #FAFAFA;
+  }
+  .section-header h2 {
+    font-size: 14px; font-weight: 900; text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .section-header a {
+    color: #FAFAFA; text-decoration: none; font-weight: 700;
+    padding: 6px 12px; border: 2px solid #FAFAFA; font-size: 12px;
+  }
+  .section-header a:hover {
+    background: #FAFAFA; color: #0A0A0A;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td {
+    padding: 12px 20px; text-align: left;
+    border-bottom: 2px solid #E0E0E0; font-size: 14px;
+  }
+  th {
+    background: #FAFAFA; font-size: 11px; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 1px; color: #666;
+  }
+  tr:last-child td { border-bottom: none; }
+  td code {
+    background: #FAFAFA; padding: 2px 6px;
+    border: 1px solid #0A0A0A; font-weight: 700; font-size: 12px;
+  }
+  .badge {
+    display: inline-block; padding: 2px 8px;
+    font-size: 11px; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border: 2px solid #0A0A0A;
+  }
+  .badge.active { background: #00E5A0; }
+  .badge.disabled { background: #FF4D4D; color: #FAFAFA; }
+
+  .empty {
+    text-align: center; padding: 40px 20px;
+    color: #666; font-style: italic;
+  }
+</style>
 </head>
 <body>
 
-    <!-- Header del sitio (siempre visible) -->
-    <header class="site-header">
-        <div class="brand" aria-label="Marca GAIA">GAIA</div>
-        <nav aria-label="Navegación de usuario">
-            <a href="/admin/logout" class="btn-logout">Cerrar Sesión</a>
-        </nav>
-    </header>
+<header class="site-header">
+  <div class="brand">GAIA</div>
+  <nav>
+    <a href="/admin/tenants">Tenants</a>
+    <a href="/docs" target="_blank">API Docs</a>
+    <form method="POST" action="/admin/logout">
+      <button type="submit">Cerrar Sesión</button>
+    </form>
+  </nav>
+</header>
 
-    <!-- Contenido principal de la página -->
-    <main class="dashboard-main">
-        
-        <!-- Sección agrupada lógicamente -->
-        <section aria-labelledby="dashboard-heading">
-            
-            <header class="page-header">
-                <h1>Dashboard</h1>
-                <p>Estado general del sistema en tiempo real</p>
-            </header>
+<main>
 
-            <!-- Grid semántico: role="list" indica a los lectores de pantalla que es una lista de elementos relacionados -->
-            <div class="kpi-grid" role="list" aria-label="Indicadores clave de rendimiento">
-                
-                <article class="kpi-card" role="listitem">
-                    <h2>Estado</h2>
-                    <p class="kpi-value status-online">ONLINE</p>
-                </article>
+  <div class="page-header">
+    <div>
+      <h1>Dashboard</h1>
+      <p>Estado general del sistema</p>
+    </div>
+    <div class="user">admin: {{ .user }}</div>
+  </div>
 
-                <article class="kpi-card" role="listitem">
-                    <h2>Modelo</h2>
-                    <p class="kpi-value">llama.cpp</p>
-                </article>
+  <div class="kpi-grid">
+    <article class="kpi-card">
+      <h2>Estado</h2>
+      <p class="kpi-value online">ONLINE</p>
+      <p class="kpi-hint">server activo</p>
+    </article>
 
-                <article class="kpi-card" role="listitem">
-                    <h2>Requests</h2>
-                    <p class="kpi-value">1.245</p>
-                </article>
+    <article class="kpi-card">
+      <h2>Tenants</h2>
+      <p class="kpi-value">{{ .tenantCount }}</p>
+      <p class="kpi-hint">{{ .tenantActiveCount }} activos</p>
+    </article>
 
-                <article class="kpi-card" role="listitem">
-                    <h2>Versión</h2>
-                    <p class="kpi-value">0.1.0</p>
-                </article>
+    <article class="kpi-card">
+      <h2>Providers</h2>
+      <p class="kpi-value">{{ .providerCount }}</p>
+      <p class="kpi-hint">configurados</p>
+    </article>
 
-            </div>
-        </section>
+    <article class="kpi-card">
+      <h2>Versión</h2>
+      <p class="kpi-value">0.1.0</p>
+      <p class="kpi-hint">gaia</p>
+    </article>
+  </div>
 
-    </main>
+  <div class="section">
+    <div class="section-header">
+      <h2>Tenants recientes</h2>
+      <a href="/admin/tenants">+ Nuevo / Ver todos</a>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Slug</th>
+          <th>Nombre</th>
+          <th>Provider</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ range .recentTenants }}
+        <tr>
+          <td><strong>{{ .ID }}</strong></td>
+          <td><code>{{ .Slug }}</code></td>
+          <td>{{ .Name }}</td>
+          <td>{{ .Provider }}</td>
+          <td><span class="badge {{ .Status }}">{{ .Status }}</span></td>
+        </tr>
+        {{ else }}
+        <tr>
+          <td colspan="5" class="empty">
+            No hay tenants todavía. <a href="/admin/tenants">Creá el primero →</a>
+          </td>
+        </tr>
+        {{ end }}
+      </tbody>
+    </table>
+  </div>
+
+</main>
 
 </body>
 </html>
+{{ end }}
