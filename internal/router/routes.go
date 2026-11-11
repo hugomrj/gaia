@@ -27,7 +27,9 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 	// 2. Inicializar Handlers
 	apiHandler := handlers.NewAPIHandler(gaiaBrain)
 	healthHandler := handlers.NewHealthHandler()
-	tenantsHandler := adminPkg.NewTenantsHandler(store)
+	
+	// CORRECCIÓN 1: Le pasamos adminUser al handler de tenants
+	tenantsHandler := adminPkg.NewTenantsHandler(store, adminUser)
 
 	// 3. Rutas Públicas y de Salud
 	router.GET("/health", healthHandler.Health)
@@ -104,8 +106,10 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 				recent = recent[:5]
 			}
 
+			// CORRECCIÓN 2: Pasamos "User" y "Active" con mayúscula para el sidebar
 			c.HTML(http.StatusOK, "dashboard.html", gin.H{
-				"user":              adminUser,
+				"User":              adminUser,
+				"Active":            "dashboard",
 				"tenantCount":       tenantCount,
 				"tenantActiveCount": activeCount,
 				"providerCount":     len(providers),

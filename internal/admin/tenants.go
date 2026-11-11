@@ -11,21 +11,28 @@ import (
 )
 
 type TenantsHandler struct {
-	store *tenant.Store
+	store     *tenant.Store
+	adminUser string
 }
 
-func NewTenantsHandler(s *tenant.Store) *TenantsHandler {
-	return &TenantsHandler{store: s}
+// El constructor ahora recibe el nombre del admin
+func NewTenantsHandler(s *tenant.Store, adminUser string) *TenantsHandler {
+	return &TenantsHandler{
+		store:     s,
+		adminUser: adminUser,
+	}
 }
 
-// GET /admin/tenants — lista todos los tenants y muestra el form de creación
+// GET /admin/tenants
 func (h *TenantsHandler) List(c *gin.Context) {
 	c.HTML(http.StatusOK, "tenants.html", gin.H{
+		"User":    h.adminUser,
+		"Active":  "tenants",
 		"tenants": h.store.List(),
 	})
 }
 
-// POST /admin/tenants — crear un tenant nuevo
+// POST /admin/tenants
 func (h *TenantsHandler) Create(c *gin.Context) {
 	slug := c.PostForm("slug")
 	name := c.PostForm("name")
@@ -34,51 +41,53 @@ func (h *TenantsHandler) Create(c *gin.Context) {
 
 	t, token, err := h.store.Create(slug, name, provider, apiKey)
 	if err != nil {
-		// Si falla, volvemos a mostrar la tabla con el mensaje de error
 		c.HTML(http.StatusBadRequest, "tenants.html", gin.H{
+			"User":    h.adminUser,
+			"Active":  "tenants",
 			"tenants": h.store.List(),
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	// Si funciona, mostramos la pantalla del token (se ve una sola vez)
 	c.HTML(http.StatusOK, "tenant_created.html", gin.H{
 		"tenant": t,
 		"token":  token,
 	})
 }
 
-// POST /admin/tenants/:id/delete — borrar tenant
+// POST /admin/tenants/:id/delete
 func (h *TenantsHandler) Delete(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	
 	if err := h.store.Delete(id); err != nil {
 		c.HTML(http.StatusBadRequest, "tenants.html", gin.H{
+			"User":    h.adminUser,
+			"Active":  "tenants",
 			"tenants": h.store.List(),
 			"error":   "Error al borrar: " + err.Error(),
 		})
 		return
 	}
 	
-	// Éxito: volvemos a la lista
 	c.Redirect(http.StatusFound, "/admin/tenants")
 }
 
-// POST /admin/tenants/:id/rotate — regenerar el token de acceso
+// POST /admin/tenants/:id/rotate
 func (h *TenantsHandler) Rotate(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	
 	t, token, err := h.store.RotateToken(id)
 	if err != nil {
 		c.HTML(http.StatusBadRequest, "tenants.html", gin.H{
+			"User":    h.adminUser,
+			"Active":  "tenants",
 			"tenants": h.store.List(),
 			"error":   "Error al rotar token: " + err.Error(),
 		})
 		return
 	}
 	
-	// Reutilizamos la misma pantalla del token, pero con un flag para el título
 	c.HTML(http.StatusOK, "tenant_created.html", gin.H{
 		"tenant": t,
 		"token":  token,

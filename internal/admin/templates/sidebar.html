@@ -1,0 +1,25 @@
+{{ define "sidebar" }}
+<aside class="sidebar">
+  <div class="brand">
+    <h1>GAIA</h1>
+    <p>AI Gateway</p>
+  </div>
+
+  <nav>
+    <a href="/admin/dashboard" class="{{ if eq .Active "dashboard" }}active{{ end }}">
+      Dashboard
+    </a>
+    <a href="/admin/tenants" class="{{ if eq .Active "tenants" }}active{{ end }}">
+      Tenants
+    </a>
+    <a href="/docs" target="_blank">API Docs</a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user">{{ .User }}</div>
+    <form method="POST" action="/admin/logout">
+      <button type="submit">Cerrar Sesión</button>
+    </form>
+  </div>
+</aside>
+{{ end }}
