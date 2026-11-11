@@ -1,4 +1,5 @@
-//	internal/tenant/store.go
+// internal/tenant/store.go
+
 package tenant
 
 import (
@@ -25,7 +26,6 @@ type Store struct {
 	encrypt bool
 }
 
-// NewStore abre una DB existente y carga todos los tenants en memoria.
 func NewStore(db *sql.DB, encrypt bool) (*Store, error) {
 	s := &Store{
 		bySlug:  make(map[string]*Tenant),
@@ -40,13 +40,11 @@ func NewStore(db *sql.DB, encrypt bool) (*Store, error) {
 	return s, nil
 }
 
-// Reload re-lee todos los tenants de SQLite y reemplaza la caché atómicamente.
 func (s *Store) Reload() error {
-	rows, err := s.db.Query(`SELECT id, slug, name, provider,
-		api_key_plain, api_key_enc, token_hash, status, created_at, updated_at
-		FROM tenants`)
+	// 1. Cargar Tenants
+	rows, err := s.db.Query(`SELECT id, slug, name, token_hash, status, created_at, updated_at FROM tenants`)
 	if err != nil {
-		return fmt.Errorf("query: %w", err)
+		return fmt.Errorf("query tenants: %w", err)
 	}
 	defer rows.Close()
 
@@ -56,27 +54,52 @@ func (s *Store) Reload() error {
 
 	for rows.Next() {
 		t := &Tenant{}
-		var plain sql.NullString
-		var enc []byte
-		var createdAt, updatedAt string // SQLite a veces devuelve string
-
-		if err := rows.Scan(&t.ID, &t.Slug, &t.Name, &t.Provider,
-			&plain, &enc, &t.TokenHash, &t.Status, &createdAt, &updatedAt); err != nil {
-			return fmt.Errorf("scan: %w", err)
+		var createdAt, updatedAt string
+		if err := rows.Scan(&t.ID, &t.Slug, &t.Name, &t.TokenHash, &t.Status, &createdAt, &updatedAt); err != nil {
+			return fmt.Errorf("scan tenant: %w", err)
 		}
-		
-		if plain.Valid { t.APIKeyPlain = plain.String }
-		t.APIKeyEnc = enc
-		
-		// Parseo de fechas (soporta formato RFC3339 y formato SQLite)
 		t.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
 		t.UpdatedAt, _ = time.Parse(time.RFC3339, updatedAt)
+		t.Providers = make([]Provider, 0)
 
 		bySlug[t.Slug] = t
 		byToken[t.TokenHash] = t
 		byID[t.ID] = t
 	}
-	if err := rows.Err(); err != nil { return err }
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	// 2. Cargar Providers
+	pRows, err := s.db.Query(`SELECT tenant_id, provider, api_key_plain, api_key_enc, is_default FROM tenant_providers`)
+	if err != nil {
+		return fmt.Errorf("query providers: %w", err)
+	}
+	defer pRows.Close()
+
+	for pRows.Next() {
+		var tenantID int64
+		var p Provider
+		var plain sql.NullString
+		var enc []byte
+		var isDefault int
+
+		if err := pRows.Scan(&tenantID, &p.Provider, &plain, &enc, &isDefault); err != nil {
+			return fmt.Errorf("scan provider: %w", err)
+		}
+		if plain.Valid {
+			p.APIKeyPlain = plain.String
+		}
+		p.APIKeyEnc = enc
+		p.IsDefault = isDefault == 1
+
+		if t, ok := byID[tenantID]; ok {
+			t.Providers = append(t.Providers, p)
+		}
+	}
+	if err := pRows.Err(); err != nil {
+		return err
+	}
 
 	s.mu.Lock()
 	s.bySlug = bySlug
@@ -86,7 +109,6 @@ func (s *Store) Reload() error {
 	return nil
 }
 
-// GetBySlug busca por slug (hot path, solo memoria).
 func (s *Store) GetBySlug(slug string) (*Tenant, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -94,7 +116,6 @@ func (s *Store) GetBySlug(slug string) (*Tenant, bool) {
 	return t, ok
 }
 
-// GetByTokenHash busca por SHA-256 del token (hot path, solo memoria).
 func (s *Store) GetByTokenHash(hash string) (*Tenant, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -102,7 +123,6 @@ func (s *Store) GetByTokenHash(hash string) (*Tenant, bool) {
 	return t, ok
 }
 
-// List devuelve todos los tenants.
 func (s *Store) List() []*Tenant {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -113,45 +133,72 @@ func (s *Store) List() []*Tenant {
 	return out
 }
 
-// Create inserta un tenant nuevo. Devuelve el token en claro UNA sola vez.
-func (s *Store) Create(slug, name, provider, apiKey string) (*Tenant, string, error) {
+func (s *Store) Create(slug, name, providerName, apiKey string) (*Tenant, string, error) {
 	slug = strings.ToLower(strings.TrimSpace(slug))
 	if !reSlug.MatchString(slug) {
-		return nil, "", errors.New("slug inválido: 3-32 chars, minúsculas, números o guiones")
+		return nil, "", errors.New("slug inválido")
 	}
-	if strings.TrimSpace(name) == "" { return nil, "", errors.New("name vacío") }
-	if strings.TrimSpace(provider) == "" { return nil, "", errors.New("provider vacío") }
-	if strings.TrimSpace(apiKey) == "" { return nil, "", errors.New("api_key vacía") }
+	if strings.TrimSpace(name) == "" {
+		return nil, "", errors.New("name vacío")
+	}
+	if strings.TrimSpace(providerName) == "" || strings.TrimSpace(apiKey) == "" {
+		return nil, "", errors.New("provider y api_key son obligatorios")
+	}
+	if s.encrypt {
+		return nil, "", errors.New("ENCRYPT_KEYS=true no implementado")
+	}
 
 	token, hash, err := GenerateToken()
-	if err != nil { return nil, "", fmt.Errorf("generar token: %w", err) }
-
-	now := time.Now().UTC()
-	var plainVal any = apiKey
-	var encVal any = nil
-	
-	if s.encrypt {
-		return nil, "", errors.New("ENCRYPT_KEYS=true aún no implementado (Fase 4)")
+	if err != nil {
+		return nil, "", err
 	}
+	now := time.Now().UTC()
 
-	res, err := s.db.Exec(
-		`INSERT INTO tenants
-		(slug, name, provider, api_key_plain, api_key_enc, token_hash, status, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
-		slug, name, provider, plainVal, encVal, hash, now.Format(time.RFC3339), now.Format(time.RFC3339),
+	// Iniciar Transacción SQLite
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, "", err
+	}
+	defer tx.Rollback()
+
+	// 1. Insertar Tenant
+	res, err := tx.Exec(
+		`INSERT INTO tenants (slug, name, token_hash, status, created_at, updated_at) VALUES (?, ?, ?, 'active', ?, ?)`,
+		slug, name, hash, now.Format(time.RFC3339), now.Format(time.RFC3339),
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
 			return nil, "", fmt.Errorf("el slug %q ya existe", slug)
 		}
-		return nil, "", fmt.Errorf("insert: %w", err)
+		return nil, "", fmt.Errorf("insert tenant: %w", err)
 	}
 	id, _ := res.LastInsertId()
 
+	// 2. Insertar Proveedor
+	_, err = tx.Exec(
+		`INSERT INTO tenant_providers (tenant_id, provider, api_key_plain, api_key_enc, is_default) VALUES (?, ?, ?, NULL, 1)`,
+		id, providerName, apiKey,
+	)
+	if err != nil {
+		return nil, "", fmt.Errorf("insert provider: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, "", err
+	}
+
+	// Actualizar Memoria
 	t := &Tenant{
-		ID: id, Slug: slug, Name: name, Provider: provider,
-		APIKeyPlain: apiKey, TokenHash: hash, Status: "active",
-		CreatedAt: now, UpdatedAt: now,
+		ID:        id,
+		Slug:      slug,
+		Name:      name,
+		TokenHash: hash,
+		Status:    "active",
+		CreatedAt: now,
+		UpdatedAt: now,
+		Providers: []Provider{
+			{Provider: providerName, APIKeyPlain: apiKey, IsDefault: true},
+		},
 	}
 
 	s.mu.Lock()
@@ -163,12 +210,15 @@ func (s *Store) Create(slug, name, provider, apiKey string) (*Tenant, string, er
 	return t, token, nil
 }
 
-// Delete borra un tenant.
 func (s *Store) Delete(id int64) error {
 	res, err := s.db.Exec(`DELETE FROM tenants WHERE id = ?`, id)
-	if err != nil { return fmt.Errorf("delete: %w", err) }
+	if err != nil {
+		return fmt.Errorf("delete: %w", err)
+	}
 	n, _ := res.RowsAffected()
-	if n == 0 { return errors.New("tenant no encontrado") }
+	if n == 0 {
+		return errors.New("tenant no encontrado")
+	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -180,16 +230,19 @@ func (s *Store) Delete(id int64) error {
 	return nil
 }
 
-// RotateToken genera un token nuevo e invalida el anterior.
 func (s *Store) RotateToken(id int64) (*Tenant, string, error) {
 	s.mu.RLock()
 	t, ok := s.byID[id]
 	s.mu.RUnlock()
-	if !ok { return nil, "", errors.New("tenant no encontrado") }
+	if !ok {
+		return nil, "", errors.New("tenant no encontrado")
+	}
 
 	token, hash, err := GenerateToken()
-	if err != nil { return nil, "", err }
-	
+	if err != nil {
+		return nil, "", err
+	}
+
 	now := time.Now().UTC()
 	if _, err := s.db.Exec(
 		`UPDATE tenants SET token_hash = ?, updated_at = ? WHERE id = ?`,
@@ -208,26 +261,16 @@ func (s *Store) RotateToken(id int64) (*Tenant, string, error) {
 	return t, token, nil
 }
 
-// APIKeyFor devuelve la key utilizable (plain o cifrada).
-func (s *Store) APIKeyFor(t *Tenant) (string, error) {
-	if s.encrypt {
-		if len(t.APIKeyEnc) == 0 { return "", errors.New("tenant sin API key cifrada") }
-		return "", errors.New("descifrado no implementado (Fase 4)")
-	}
-	if t.APIKeyPlain == "" { return "", errors.New("tenant sin API key") }
-	return t.APIKeyPlain, nil
-}
-
-// GenerateToken genera gaia_sk_<64 hex> y su hash SHA-256.
 func GenerateToken() (plain, hash string, err error) {
 	b := make([]byte, 32)
-	if _, err = rand.Read(b); err != nil { return "", "", err }
+	if _, err = rand.Read(b); err != nil {
+		return "", "", err
+	}
 	plain = "gaia_sk_" + hex.EncodeToString(b)
 	hash = HashToken(plain)
 	return
 }
 
-// HashToken calcula SHA-256 del token.
 func HashToken(plain string) string {
 	sum := sha256.Sum256([]byte(plain))
 	return hex.EncodeToString(sum[:])

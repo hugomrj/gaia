@@ -2,11 +2,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard · GAIA</title>
-<link rel="stylesheet" href="/admin/static/css/style.css">
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard · GAIA</title>
+  <link rel="stylesheet" href="/admin/static/css/style.css">
 </head>
 <body>
 
@@ -14,73 +13,73 @@
   {{ template "sidebar" . }}
 
   <main class="app-content">
-
     <div class="page-header">
       <div>
         <h1>Dashboard</h1>
-        <p>Estado general del sistema</p>
+        <p>Estado general del sistema y métricas clave</p>
       </div>
     </div>
 
     <div class="kpi-grid">
       <article class="kpi-card">
-        <h2>Estado</h2>
+        <h2>Estado del Sistema</h2>
         <p class="kpi-value status-online">ONLINE</p>
-        <p class="kpi-hint">server activo</p>
+        <p class="kpi-hint">Gateway operativo</p>
       </article>
 
       <article class="kpi-card">
         <h2>Tenants</h2>
         <p class="kpi-value">{{ .tenantCount }}</p>
-        <p class="kpi-hint">{{ .tenantActiveCount }} activos</p>
+        <p class="kpi-hint">{{ .tenantActiveCount }} activos actualmente</p>
       </article>
 
       <article class="kpi-card">
         <h2>Providers</h2>
         <p class="kpi-value">{{ .providerCount }}</p>
-        <p class="kpi-hint">configurados</p>
+        <p class="kpi-hint">Conexiones configuradas</p>
       </article>
 
       <article class="kpi-card">
         <h2>Versión</h2>
         <p class="kpi-value">0.1.0</p>
-        <p class="kpi-hint">gaia</p>
+        <p class="kpi-hint">Gaia Core</p>
       </article>
     </div>
 
-    <div class="section" style="margin-top: 32px;">
+    <div class="section mt-32">
       <div class="section-header">
         <h2>Tenants recientes</h2>
-        <a href="/admin/tenants">Ver todos →</a>
+        <a href="/admin/tenants" class="btn-text">Ver todos →</a>
       </div>
 
       <table class="data-table">
         <thead>
           <tr>
-            <th>ID</th>
+            <th style="width: 80px;">ID</th>
             <th>Slug</th>
             <th>Nombre</th>
             <th>Provider</th>
-            <th>Status</th>
+            <th style="width: 120px;">Status</th>
           </tr>
         </thead>
         <tbody>
           {{ range .recentTenants }}
           <tr>
-            <td><strong>{{ .ID }}</strong></td>
-            <td><code>{{ .Slug }}</code></td>
+            <td><strong>#{{ .ID }}</strong></td>
+            <td><code class="slug-code">{{ .Slug }}</code></td>
             <td>{{ .Name }}</td>
             <td>{{ .Provider }}</td>
             <td>
               <span class="badge {{ if .IsActive }}badge-success{{ else }}badge-warning{{ end }}">
-                {{ .Status }}
+                {{ if .IsActive }}Activo{{ else }}Inactivo{{ end }}
               </span>
             </td>
           </tr>
           {{ else }}
           <tr>
             <td colspan="5" class="empty-state">
-              No hay tenants todavía. <a href="/admin/tenants">Creá el primero →</a>
+              <p>No hay tenants registrados todavía.</p>
+              <a href="/admin/tenants" class="btn-secondary btn-sm" style="margin-top: 12px;">+ Crear el primero</a>
             </td>
           </tr>
           {{ end }}

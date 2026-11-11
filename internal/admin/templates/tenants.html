@@ -2,10 +2,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tenants · GAIA</title>
-<link rel="stylesheet" href="/admin/static/css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tenants · GAIA</title>
+  <link rel="stylesheet" href="/admin/static/css/style.css">
 </head>
 <body>
 
@@ -13,111 +13,102 @@
   {{ template "sidebar" . }}
 
   <main class="app-content">
-
     <div class="page-header">
       <div>
         <h1>Tenants</h1>
         <p>Clientes con acceso a la API</p>
       </div>
+      <button type="button" class="btn-primary" onclick="document.getElementById('modal-new').showModal()">
+        + Nuevo tenant
+      </button>
     </div>
 
     {{ if .error }}
-    <div class="alert alert-error">{{ .error }}</div>
+      <div class="alert alert-error">{{ .error }}</div>
     {{ end }}
 
-    <div class="tenants-layout">
-
-      <!-- COLUMNA IZQUIERDA: listado -->
-      <div class="tenants-list">
-        <div class="section">
-          
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th style="width:50px;">ID</th>
-                <th>Slug</th>
-                <th>Nombre</th>
-                <th>Provider</th>
-                <th>Status</th>
-                <th style="width:180px;">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {{ range .tenants }}
-              <tr>
-                <td><strong>{{ .ID }}</strong></td>
-                <td><code>{{ .Slug }}</code></td>
-                <td>{{ .Name }}</td>
-                <td>{{ .Provider }}</td>
-                <td><span class="badge {{ .Status }}">{{ .Status }}</span></td>
-                <td>
-                  <div style="display:flex; gap:6px;">
-                    <form method="POST" action="/admin/tenants/{{ .ID }}/rotate"
-                          onsubmit="return confirm('¿Rotar el token de {{ .Slug }}? El anterior dejará de funcionar.')">
-                      <button type="submit" class="btn-secondary"
-                              style="padding: 4px 10px; font-size: 11px;">Rotar</button>
-                    </form>
-                    <form method="POST" action="/admin/tenants/{{ .ID }}/delete"
-                          onsubmit="return confirm('¿Borrar tenant {{ .Slug }}?')">
-                      <button type="submit" class="btn-secondary"
-                              style="padding: 4px 10px; font-size: 11px; background:#fee2e2; color:#991b1b; border-color:#f87171;">Borrar</button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-              {{ else }}
-              <tr>
-                <td colspan="6" class="empty-state">
-                  No hay tenants todavía. Creá el primero a la derecha →
-                </td>
-              </tr>
-              {{ end }}
-            </tbody>
-          </table>
-
-        </div>
-      </div>
-
-      <!-- COLUMNA DERECHA: formulario -->
-      <div class="tenants-form">
-        <div class="card">
-          <h2 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 20px;">
-            + Nuevo tenant
-          </h2>
-
-          <form method="POST" action="/admin/tenants">
-            <div class="form-group">
-              <label for="slug">Slug (URL)</label>
-              <input id="slug" name="slug" placeholder="hugo" required
-                     pattern="[a-z0-9-]{3,32}"
-                     title="3-32 caracteres: minúsculas, números, guiones">
-            </div>
-
-            <div class="form-group">
-              <label for="name">Nombre</label>
-              <input id="name" name="name" placeholder="Hugo Dev" required>
-            </div>
-
-            <div class="form-group">
-              <label for="provider">Provider</label>
-              <select id="provider" name="provider" required>
-                <option value="mistral">Mistral</option>
-                <option value="openai" disabled>OpenAI (próximamente)</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="api_key">API Key del provider</label>
-              <input id="api_key" name="api_key" type="password" required placeholder="sk-...">
-            </div>
-
-            <button type="submit" class="btn-primary">Crear tenant</button>
-          </form>
-        </div>
-      </div>
-
+    <div class="section">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="col-id">ID</th>
+            <th>Slug</th>
+            <th>Nombre</th>
+            <th>Provider</th>
+            <th style="width: 100px;">Status</th>
+            <th class="col-actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range .tenants }}
+          <tr>
+            <td><strong>#{{ .ID }}</strong></td>
+            <td><code class="slug-code">{{ .Slug }}</code></td>
+            <td>{{ .Name }}</td>
+            <td>{{ .Provider }}</td>
+            <td><span class="badge {{ .Status }}">{{ .Status }}</span></td>
+            <td>
+              <div class="table-actions">
+                <form method="POST" action="/admin/tenants/{{ .ID }}/rotate" onsubmit="return confirm('¿Rotar el token de {{ .Slug }}?')">
+                  <button type="submit" class="btn-secondary btn-sm">Rotar</button>
+                </form>
+                <form method="POST" action="/admin/tenants/{{ .ID }}/delete" onsubmit="return confirm('¿Borrar tenant {{ .Slug }}? Esta acción no se puede deshacer.')">
+                  <button type="submit" class="btn-danger btn-sm">Borrar</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {{ else }}
+          <tr>
+            <td colspan="6" class="empty-state">
+              <p>No hay tenants registrados todavía.</p>
+              <p>Hacé clic en <strong>+ Nuevo tenant</strong> para comenzar.</p>
+            </td>
+          </tr>
+          {{ end }}
+        </tbody>
+      </table>
     </div>
 
+    <!-- MODAL -->
+    <dialog id="modal-new" class="modal">
+      <div class="modal-header">
+        <h2>Nuevo tenant</h2>
+        <button type="button" class="modal-close" onclick="document.getElementById('modal-new').close()" aria-label="Cerrar">×</button>
+      </div>
+
+      <form method="POST" action="/admin/tenants" class="modal-body">
+        <div class="form-group">
+          <label for="slug">Slug (URL)</label>
+          <input id="slug" name="slug" placeholder="ej: cliente-alpha" required
+                 pattern="[a-z0-9-]{3,32}"
+                 title="3-32 caracteres: solo minúsculas, números y guiones">
+        </div>
+
+        <div class="form-group">
+          <label for="name">Nombre</label>
+          <input id="name" name="name" placeholder="Ej: Hugo Dev" required>
+        </div>
+
+        <div class="form-group">
+          <label for="provider">Provider</label>
+          <select id="provider" name="provider" required>
+            <option value="mistral">Mistral</option>
+            <option value="openai" disabled>OpenAI (próximamente)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="api_key">API Key del provider</label>
+          <input id="api_key" name="api_key" type="password" required placeholder="sk-...">
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="document.getElementById('modal-new').close()">Cancelar</button>
+          <button type="submit" class="btn-primary">Crear tenant</button>
+        </div>
+      </form>
+    </dialog>
   </main>
 </div>
 

@@ -1,3 +1,4 @@
+//  internal/db/db.go
 package db
 
 import (
@@ -8,8 +9,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// Create crea la DB en path y ejecuta el schema.
-// Falla si el archivo ya existe (para no pisar datos por accidente).
 func Create(path string) error {
 	if _, err := os.Stat(path); err == nil {
 		return fmt.Errorf("la DB ya existe en %s (borrala si querés recrearla)", path)
@@ -27,7 +26,6 @@ func Create(path string) error {
 	return nil
 }
 
-// Open abre una DB existente. Falla si el archivo no existe.
 func Open(path string) (*sql.DB, error) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return nil, fmt.Errorf("la DB no existe en %s (corré cmd/db-init primero)", path)
@@ -48,9 +46,6 @@ CREATE TABLE IF NOT EXISTS tenants (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     slug            TEXT NOT NULL UNIQUE,
     name            TEXT NOT NULL,
-    provider        TEXT NOT NULL,
-    api_key_plain   TEXT,
-    api_key_enc     BLOB,
     token_hash      TEXT NOT NULL UNIQUE,
     status          TEXT NOT NULL DEFAULT 'active',
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -60,4 +55,17 @@ CREATE TABLE IF NOT EXISTS tenants (
 CREATE INDEX IF NOT EXISTS idx_tenants_slug ON tenants(slug);
 CREATE INDEX IF NOT EXISTS idx_tenants_token_hash ON tenants(token_hash);
 CREATE INDEX IF NOT EXISTS idx_tenants_status ON tenants(status);
+
+CREATE TABLE IF NOT EXISTS tenant_providers (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id       INTEGER NOT NULL,
+    provider        TEXT NOT NULL,
+    api_key_plain   TEXT,
+    api_key_enc     BLOB,
+    is_default      INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    UNIQUE(tenant_id, provider)
+);
+
+CREATE INDEX IF NOT EXISTS idx_tenant_providers_tenant ON tenant_providers(tenant_id);
 `
