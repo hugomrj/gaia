@@ -47,25 +47,41 @@ CREATE TABLE IF NOT EXISTS tenants (
     slug            TEXT NOT NULL UNIQUE,
     name            TEXT NOT NULL,
     token_hash      TEXT NOT NULL UNIQUE,
+    token_plain     TEXT NOT NULL, -- <-- NUEVA COLUMNA
     status          TEXT NOT NULL DEFAULT 'active',
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_tenants_slug ON tenants(slug);
-CREATE INDEX IF NOT EXISTS idx_tenants_token_hash ON tenants(token_hash);
-CREATE INDEX IF NOT EXISTS idx_tenants_status ON tenants(status);
-
-CREATE TABLE IF NOT EXISTS tenant_providers (
+CREATE TABLE IF NOT EXISTS providers (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    tenant_id       INTEGER NOT NULL,
-    provider        TEXT NOT NULL,
-    api_key_plain   TEXT,
-    api_key_enc     BLOB,
-    is_default      INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
-    UNIQUE(tenant_id, provider)
+    name            TEXT NOT NULL UNIQUE
 );
 
-CREATE INDEX IF NOT EXISTS idx_tenant_providers_tenant ON tenant_providers(tenant_id);
+INSERT OR IGNORE INTO providers (name) VALUES ('mistral'), ('openai'), ('anthropic');
+
+CREATE TABLE IF NOT EXISTS tenant_proveedor (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id       INTEGER NOT NULL,
+    provider_id     INTEGER NOT NULL,
+    is_default      INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    FOREIGN KEY (provider_id) REFERENCES providers(id),
+    UNIQUE(tenant_id, provider_id)
+);
+
+CREATE TABLE IF NOT EXISTS keys (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_proveedor_id INTEGER NOT NULL,
+    api_key_plain       TEXT,
+    api_key_enc         BLOB,
+    is_active           INTEGER NOT NULL DEFAULT 1,
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_proveedor_id) REFERENCES tenant_proveedor(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_tenants_slug ON tenants(slug);
+CREATE INDEX IF NOT EXISTS idx_tenants_token_hash ON tenants(token_hash);
+CREATE INDEX IF NOT EXISTS idx_tp_tenant ON tenant_proveedor(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_keys_tp ON keys(tenant_proveedor_id);
 `

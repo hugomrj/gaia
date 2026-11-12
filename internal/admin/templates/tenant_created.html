@@ -4,121 +4,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GAIA · Token</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Courier New', ui-monospace, monospace;
-    background: #FAFAFA; color: #0A0A0A;
-    padding: 48px 32px; line-height: 1.5;
-    display: flex; justify-content: center;
-  }
-  .box {
-    max-width: 680px; width: 100%;
-    background: #FFFFFF; border: 2px solid #0A0A0A;
-    padding: 32px; box-shadow: 8px 8px 0 #0A0A0A;
-  }
-  h1 {
-    font-size: 24px; font-weight: 900; margin-bottom: 16px;
-    padding-bottom: 16px; border-bottom: 3px solid #0A0A0A;
-  }
-  .tenant-info {
-    margin-bottom: 24px; font-size: 14px;
-  }
-  .tenant-info strong { font-weight: 900; }
-  .tenant-info code {
-    background: #FAFAFA; padding: 2px 8px;
-    border: 1px solid #0A0A0A; font-weight: 700;
-  }
-
-  .warn {
-    background: #0A0A0A; color: #FAFAFA;
-    padding: 16px; margin-bottom: 24px;
-    border-left: 4px solid #FF4D4D;
-    font-weight: 700; font-size: 14px;
-  }
-  .warn strong { color: #FF4D4D; }
-
-  .token-label {
-    font-size: 11px; font-weight: 900;
-    text-transform: uppercase; letter-spacing: 1px;
-    margin-bottom: 8px;
-  }
-  .token {
-    background: #0A0A0A; color: #00E5A0;
-    padding: 16px; font-family: 'Courier New', monospace;
-    font-size: 13px; word-break: break-all;
-    border: 2px solid #0A0A0A; margin-bottom: 12px;
-    user-select: all;
-  }
-  button {
-    background: #0A0A0A; color: #FAFAFA;
-    border: 2px solid #0A0A0A; padding: 10px 20px;
-    font-family: inherit; font-size: 13px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.5px;
-    cursor: pointer;
-  }
-  button:hover { background: #FAFAFA; color: #0A0A0A; }
-  button.copied { background: #00E5A0; color: #0A0A0A; }
-
-  .footer {
-    margin-top: 32px; padding-top: 16px;
-    border-top: 2px solid #0A0A0A;
-  }
-  .footer a {
-    color: #0A0A0A; text-decoration: none; font-weight: 700;
-    padding: 8px 16px; border: 2px solid #0A0A0A;
-    display: inline-block;
-  }
-  .footer a:hover { background: #0A0A0A; color: #FAFAFA; }
-</style>
+<title>Token · GAIA</title>
+<link rel="stylesheet" href="/admin/static/css/style.css">
 </head>
 <body>
-<div class="box">
 
-  <h1>{{ if .rotate }}Token rotado ✓{{ else }}Tenant creado ✓{{ end }}</h1>
+<div class="success-layout">
+  <div class="success-box card">
+    <h1 style="font-size: 28px; font-weight: 900; margin-bottom: 16px;">
+      {{ if .rotate }}Token rotado ✓{{ else }}Tenant creado ✓{{ end }}
+    </h1>
+    
+    <p style="font-size: 15px; margin-bottom: 24px;">
+      <strong>{{ .tenant.Name }}</strong> — <code class="slug-code">{{ .tenant.Slug }}</code>
+    </p>
 
-  <div class="tenant-info">
-    <strong>{{ .tenant.Name }}</strong> — <code>{{ .tenant.Slug }}</code>
-    ({{ .tenant.Provider }})
+    <div class="warn-box">
+      ⚠ Este token se muestra UNA SOLA VEZ. Copialo y guardalo ahora. Si lo perdés, tendrás que rotarlo.
+    </div>
+
+    <div>
+      <label style="font-size: 12px; font-weight: 700; text-transform: uppercase;">Token de acceso</label>
+      <div class="token-display" id="token">{{ .token }}</div>
+    </div>
+
+    <div style="display: flex; gap: 12px;">
+      <button class="btn-secondary" onclick="copyToken()" id="copy-btn">Copiar al portapapeles</button>
+      <a href="/admin/tenants" class="btn-primary" style="width: auto;">Volver a Tenants</a>
+    </div>
   </div>
-
-  <div class="warn">
-    ⚠ <strong>Este token se muestra UNA SOLA VEZ.</strong>
-    Copialo y guardalo ahora. Si lo perdés, tendrás que rotarlo
-    (el anterior dejará de funcionar inmediatamente).
-  </div>
-
-  <div class="token-label">Token de acceso</div>
-  <div class="token" id="token">{{ .token }}</div>
-
-  <button id="copy-btn" onclick="copyToken()">Copiar al portapapeles</button>
-
-  <div class="footer">
-    <a href="/admin/tenants">← Volver a tenants</a>
-  </div>
-
 </div>
 
 <script>
 function copyToken() {
   const text = document.getElementById('token').innerText;
   const btn = document.getElementById('copy-btn');
-  
   navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = '✓ Copiado';
-    btn.classList.add('copied');
+    const originalText = btn.innerText;
+    btn.innerText = '✓ Copiado';
+    // Puedes usar clases si prefieres, acá solo cambiamos el texto temporalmente
     setTimeout(() => {
-      btn.textContent = 'Copiar al portapapeles';
-      btn.classList.remove('copied');
+      btn.innerText = originalText;
     }, 2000);
-  }).catch(() => {
-    // Fallback para navegadores sin clipboard API o sin HTTPS
-    const range = document.createRange();
-    range.selectNodeContents(document.getElementById('token'));
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
-    btn.textContent = 'Seleccionado — Ctrl+C';
   });
 }
 </script>

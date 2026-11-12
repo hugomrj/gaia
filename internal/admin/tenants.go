@@ -36,10 +36,10 @@ func (h *TenantsHandler) List(c *gin.Context) {
 func (h *TenantsHandler) Create(c *gin.Context) {
 	slug := c.PostForm("slug")
 	name := c.PostForm("name")
-	provider := c.PostForm("provider")
-	apiKey := c.PostForm("api_key")
+	
+	// Ya NO leemos provider ni api_key porque el tenant nace independiente
 
-	t, token, err := h.store.Create(slug, name, provider, apiKey)
+	t, token, err := h.store.Create(slug, name)
 	if err != nil {
 		c.HTML(http.StatusBadRequest, "tenants.html", gin.H{
 			"User":    h.adminUser,

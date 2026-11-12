@@ -68,7 +68,12 @@
             <td><strong>#{{ .ID }}</strong></td>
             <td><code class="slug-code">{{ .Slug }}</code></td>
             <td>{{ .Name }}</td>
-            <td>{{ .Provider }}</td>
+            <td>
+              <!-- ITERAMOS SOBRE LOS PROVEEDORES -->
+              {{ range .Providers }}
+                <span class="badge badge-warning" style="margin-right: 4px;">{{ .Provider }}</span>
+              {{ end }}
+            </td>
             <td>
               <span class="badge {{ if .IsActive }}badge-success{{ else }}badge-warning{{ end }}">
                 {{ if .IsActive }}Activo{{ else }}Inactivo{{ end }}

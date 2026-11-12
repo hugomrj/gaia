@@ -1,0 +1,162 @@
+{{ define "keys.html" }}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Keys · GAIA</title>
+<link rel="stylesheet" href="/admin/static/css/style.css">
+</head>
+<body>
+
+<div class="app-layout">
+  {{ template "sidebar" . }}
+
+  <main class="app-content">
+
+    <div class="page-header">
+      <div>
+        <h1>API Keys</h1>
+        <p>Llaves de acceso a Proveedores (BYOK)</p>
+      </div>
+      <button type="button" class="btn-primary" style="width: auto;" onclick="document.getElementById('modal-key').showModal()">
+        + Nueva Key
+      </button>
+    </div>
+
+    {{ if .error }}
+    <div class="alert alert-error">{{ .error }}</div>
+    {{ end }}
+
+    <div class="section">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Tenant</th>
+            <th>Proveedor</th>
+            <th>API Key</th>
+            <th>Default</th>
+            <th class="col-actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range .keys }}
+          <tr>
+            <td>
+              <strong>{{ .TenantName }}</strong><br>
+              <span style="font-size: 11px; color: var(--gris-medio);">{{ .TenantSlug }}</span>
+            </td>
+            <td><span class="badge badge-warning">{{ .ProviderName }}</span></td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <!-- data-key guarda la real, el texto visible es la enmascarada -->
+                <code class="slug-code" 
+                      data-key="{{ .APIKeyPlain }}" 
+                      id="key-{{ .KeyID }}">
+                  {{ .MaskedKey }}
+                </code>
+                <!-- Usamos data-id y pasamos 'this' para evitar errores en el editor -->
+                <button type="button" 
+                        class="btn-secondary" 
+                        style="padding: 4px 8px; font-size: 10px;"
+                        data-id="{{ .KeyID }}"
+                        onclick="toggleKey(this)">
+                  Ver
+                </button>
+              </div>
+            </td>
+            <td>
+              {{ if .IsDefault }}
+                <span class="badge badge-success">DEFAULT</span>
+              {{ else }}
+                <span style="color: var(--gris-medio); font-size: 12px;">-</span>
+              {{ end }}
+            </td>
+            <td>
+              <div class="table-actions">
+                <button type="button" class="btn-danger btn-sm" onclick="alert('Borrar key ID {{ .KeyID }} - Próximamente')">Borrar</button>
+              </div>
+            </td>
+          </tr>
+          {{ else }}
+          <tr>
+            <td colspan="5" class="empty-state">
+              No hay keys configuradas todavía.
+            </td>
+          </tr>
+          {{ end }}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MODAL NUEVA KEY -->
+    <dialog id="modal-key" class="modal">
+      <div class="modal-header">
+        <h2>Nueva API Key</h2>
+        <button type="button" class="modal-close" onclick="document.getElementById('modal-key').close()">×</button>
+      </div>
+      <form method="POST" action="/admin/keys">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="tenant_id">Tenant</label>
+            <select id="tenant_id" name="tenant_id" required>
+              <option value="">Seleccione un cliente...</option>
+              {{ range .tenants }}
+                <option value="{{ .ID }}">{{ .Name }} ({{ .Slug }})</option>
+              {{ end }}
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="provider">Proveedor</label>
+            <select id="provider" name="provider" required>
+              {{ range .providers }}
+                <option value="{{ . }}">{{ . }}</option>
+              {{ end }}
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="api_key">API Key</label>
+            <input id="api_key" name="api_key" type="password" required placeholder="sk-...">
+          </div>
+          
+          <div class="form-group checkbox-group">
+            <input type="checkbox" name="is_default" id="is_default" value="1">
+            <label for="is_default">Usar como proveedor por defecto para este cliente</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="document.getElementById('modal-key').close()">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width: auto;">Guardar Key</button>
+        </div>
+      </form>
+    </dialog>
+
+  </main>
+</div>
+
+<!-- SCRIPT PARA MOSTRAR/OCULTAR LA KEY -->
+<script>
+  function toggleKey(btn) {
+    const keyId = btn.getAttribute('data-id');
+    const codeElement = document.getElementById('key-' + keyId);
+    const realKey = codeElement.getAttribute('data-key');
+
+    if (btn.innerText === 'Ver') {
+      // Mostrar
+      codeElement.innerText = realKey;
+      btn.innerText = 'Ocultar';
+      codeElement.style.color = '#991B1B'; // Color rojo de alerta
+    } else {
+      // Ocultar
+      codeElement.innerText = realKey.substring(0, 4) + '••••••••' + realKey.substring(realKey.length - 4);
+      btn.innerText = 'Ver';
+      codeElement.style.color = ''; // Volver al color original
+    }
+  }
+</script>
+
+</body>
+</html>
+{{ end }}

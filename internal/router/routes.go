@@ -27,9 +27,8 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 	// 2. Inicializar Handlers
 	apiHandler := handlers.NewAPIHandler(gaiaBrain)
 	healthHandler := handlers.NewHealthHandler()
-	
-	// CORRECCIÓN 1: Le pasamos adminUser al handler de tenants
 	tenantsHandler := adminPkg.NewTenantsHandler(store, adminUser)
+	keysHandler := adminPkg.NewKeysHandler(store, adminUser) // <-- NUEVO
 
 	// 3. Rutas Públicas y de Salud
 	router.GET("/health", healthHandler.Health)
@@ -94,7 +93,9 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 				if t.IsActive() {
 					activeCount++
 				}
-				providers[t.Provider] = true
+				for _, p := range t.Providers {
+					providers[p.ProviderName] = true
+				}
 			}
 
 			// Ordenar por ID descendente (más recientes primero)
@@ -106,7 +107,6 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 				recent = recent[:5]
 			}
 
-			// CORRECCIÓN 2: Pasamos "User" y "Active" con mayúscula para el sidebar
 			c.HTML(http.StatusOK, "dashboard.html", gin.H{
 				"User":              adminUser,
 				"Active":            "dashboard",
@@ -127,6 +127,10 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 		adminGroup.POST("/tenants", tenantsHandler.Create)
 		adminGroup.POST("/tenants/:id/delete", tenantsHandler.Delete)
 		adminGroup.POST("/tenants/:id/rotate", tenantsHandler.Rotate)
+
+		// Keys <-- NUEVO
+		adminGroup.GET("/keys", keysHandler.List)
+		adminGroup.POST("/keys", keysHandler.Create)
 	}
 
 	return router

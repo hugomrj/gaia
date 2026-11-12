@@ -2,10 +2,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tenants · GAIA</title>
-  <link rel="stylesheet" href="/admin/static/css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tenants · GAIA</title>
+<link rel="stylesheet" href="/admin/static/css/style.css">
 </head>
 <body>
 
@@ -13,18 +13,19 @@
   {{ template "sidebar" . }}
 
   <main class="app-content">
+
     <div class="page-header">
       <div>
         <h1>Tenants</h1>
         <p>Clientes con acceso a la API</p>
       </div>
-      <button type="button" class="btn-primary" onclick="document.getElementById('modal-new').showModal()">
+      <button type="button" class="btn-primary" style="width: auto;" onclick="document.getElementById('modal-new').showModal()">
         + Nuevo tenant
       </button>
     </div>
 
     {{ if .error }}
-      <div class="alert alert-error">{{ .error }}</div>
+    <div class="alert alert-error">{{ .error }}</div>
     {{ end }}
 
     <div class="section">
@@ -34,8 +35,9 @@
             <th class="col-id">ID</th>
             <th>Slug</th>
             <th>Nombre</th>
-            <th>Provider</th>
-            <th style="width: 100px;">Status</th>
+            <th>Providers</th>
+            <th>Token de Acceso</th> <!-- COLUMNA NUEVA -->
+            <th class="col-status">Status</th>
             <th class="col-actions">Acciones</th>
           </tr>
         </thead>
@@ -45,14 +47,50 @@
             <td><strong>#{{ .ID }}</strong></td>
             <td><code class="slug-code">{{ .Slug }}</code></td>
             <td>{{ .Name }}</td>
-            <td>{{ .Provider }}</td>
-            <td><span class="badge {{ .Status }}">{{ .Status }}</span></td>
+            <td>
+              {{ range .Providers }}
+                <span class="badge badge-warning" style="margin-right: 4px;">{{ .ProviderName }}</span>
+              {{ else }}
+                <span style="color: var(--gris-medio); font-size: 13px;">Sin proveedores</span>
+              {{ end }}
+            </td>
+            <td>
+              <!-- CELDA NUEVA CON BOTÓN VER -->
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <code class="slug-code" 
+                      data-key="{{ .TokenPlain }}" 
+                      id="token-{{ .ID }}">
+                  ••••••••••••
+                </code>
+                <button type="button" 
+                        class="btn-secondary" 
+                        style="padding: 4px 8px; font-size: 10px;"
+                        data-id="{{ .ID }}"
+                        onclick="toggleToken(this)">
+                  Ver
+                </button>
+              </div>
+            </td>
+            <td>
+              <span class="badge {{ if .IsActive }}badge-success{{ else }}badge-warning{{ end }}">
+                {{ .Status }}
+              </span>
+            </td>
             <td>
               <div class="table-actions">
-                <form method="POST" action="/admin/tenants/{{ .ID }}/rotate" onsubmit="return confirm('¿Rotar el token de {{ .Slug }}?')">
+                <button type="button" class="btn-secondary btn-sm" 
+                  data-id="{{ .ID }}" 
+                  data-name="{{ .Name }}" 
+                  data-providers="{{ len .Providers }}"
+                  onclick="openKeysModal(this)">
+                  Keys
+                </button>
+                <form method="POST" action="/admin/tenants/{{ .ID }}/rotate"
+                      onsubmit="return confirm('¿Rotar el token de {{ .Slug }}?')">
                   <button type="submit" class="btn-secondary btn-sm">Rotar</button>
                 </form>
-                <form method="POST" action="/admin/tenants/{{ .ID }}/delete" onsubmit="return confirm('¿Borrar tenant {{ .Slug }}? Esta acción no se puede deshacer.')">
+                <form method="POST" action="/admin/tenants/{{ .ID }}/delete"
+                      onsubmit="return confirm('¿Borrar tenant {{ .Slug }}?')">
                   <button type="submit" class="btn-danger btn-sm">Borrar</button>
                 </form>
               </div>
@@ -60,9 +98,11 @@
           </tr>
           {{ else }}
           <tr>
-            <td colspan="6" class="empty-state">
-              <p>No hay tenants registrados todavía.</p>
-              <p>Hacé clic en <strong>+ Nuevo tenant</strong> para comenzar.</p>
+            <td colspan="7" class="empty-state"> <!-- Colspan actualizado a 7 -->
+              <p>No hay tenants todavía.</p>
+              <a href="#" onclick="document.getElementById('modal-new').showModal(); return false;" class="btn-secondary btn-sm">
+                + Crear el primero
+              </a>
             </td>
           </tr>
           {{ end }}
@@ -70,47 +110,119 @@
       </table>
     </div>
 
-    <!-- MODAL -->
+    <!-- MODAL 1: CREAR TENANT -->
     <dialog id="modal-new" class="modal">
       <div class="modal-header">
         <h2>Nuevo tenant</h2>
-        <button type="button" class="modal-close" onclick="document.getElementById('modal-new').close()" aria-label="Cerrar">×</button>
+        <button type="button" class="modal-close" onclick="document.getElementById('modal-new').close()">×</button>
       </div>
-
-      <form method="POST" action="/admin/tenants" class="modal-body">
-        <div class="form-group">
-          <label for="slug">Slug (URL)</label>
-          <input id="slug" name="slug" placeholder="ej: cliente-alpha" required
-                 pattern="[a-z0-9-]{3,32}"
-                 title="3-32 caracteres: solo minúsculas, números y guiones">
+      <form method="POST" action="/admin/tenants">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="slug">Slug (URL)</label>
+            <input id="slug" name="slug" placeholder="clinica-ramirez" required pattern="[a-z0-9-]{3,32}">
+          </div>
+          <div class="form-group">
+            <label for="name">Nombre</label>
+            <input id="name" name="name" placeholder="Clínica Ramírez" required>
+          </div>
+          <p style="font-size: 13px; color: var(--gris-medio); margin-top: 16px;">
+            Después de crear el cliente, podrás asignarle proveedores y API Keys desde la sección de Keys.
+          </p>
         </div>
-
-        <div class="form-group">
-          <label for="name">Nombre</label>
-          <input id="name" name="name" placeholder="Ej: Hugo Dev" required>
-        </div>
-
-        <div class="form-group">
-          <label for="provider">Provider</label>
-          <select id="provider" name="provider" required>
-            <option value="mistral">Mistral</option>
-            <option value="openai" disabled>OpenAI (próximamente)</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="api_key">API Key del provider</label>
-          <input id="api_key" name="api_key" type="password" required placeholder="sk-...">
-        </div>
-
         <div class="modal-footer">
           <button type="button" class="btn-secondary" onclick="document.getElementById('modal-new').close()">Cancelar</button>
-          <button type="submit" class="btn-primary">Crear tenant</button>
+          <button type="submit" class="btn-primary" style="width: auto;">Crear tenant</button>
         </div>
       </form>
     </dialog>
+
+    <!-- MODAL 2: GESTIONAR KEYS -->
+    <dialog id="modal-keys" class="modal">
+      <div class="modal-header">
+        <h2 id="keys-modal-title">Keys del Tenant</h2>
+        <button type="button" class="modal-close" onclick="document.getElementById('modal-keys').close()">×</button>
+      </div>
+      <div class="modal-body">
+        
+        <div id="keys-list-container">
+          <h3>Proveedores Configurados</h3>
+          <div id="keys-list" class="mt-12">
+            <!-- JS inyectará los items acá -->
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <form id="form-add-key" method="POST" action="">
+          <h3 class="mb-16">+ Agregar Proveedor</h3>
+          
+          <div class="form-group">
+            <label>Proveedor</label>
+            <select name="provider" required>
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="mistral">Mistral</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>API Key</label>
+            <input name="api_key" type="password" required placeholder="sk-...">
+          </div>
+          <div class="form-group checkbox-group">
+            <input type="checkbox" name="is_default" id="is_default" value="1">
+            <label for="is_default">Usar como proveedor por defecto</label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="document.getElementById('modal-keys').close()">Cerrar</button>
+        <button type="submit" form="form-add-key" class="btn-primary" style="width: auto;">Guardar Key</button>
+      </div>
+    </dialog>
+
   </main>
 </div>
+
+<script>
+  // Función para abrir el modal de keys
+  function openKeysModal(btn) {
+    const tenantId = btn.getAttribute('data-id');
+    const tenantName = btn.getAttribute('data-name');
+    const providerCount = parseInt(btn.getAttribute('data-providers'), 10);
+
+    document.getElementById('keys-modal-title').innerText = 'Keys de ' + tenantName;
+    document.getElementById('form-add-key').action = '/admin/tenants/' + tenantId + '/keys';
+    
+    const listContainer = document.getElementById('keys-list');
+    listContainer.innerHTML = ''; // Limpiar
+    
+    if (providerCount > 0) {
+      listContainer.innerHTML = `<p class="kpi-hint">El tenant tiene ${providerCount} proveedor(es) configurado(s).</p>`;
+    } else {
+      listContainer.innerHTML = '<p class="kpi-hint">No hay keys configuradas.</p>';
+    }
+
+    document.getElementById('modal-keys').showModal();
+  }
+
+  // Función para ver/ocultar el Token
+  function toggleToken(btn) {
+    const tenantId = btn.getAttribute('data-id');
+    const codeElement = document.getElementById('token-' + tenantId);
+    const realToken = codeElement.getAttribute('data-key');
+
+    if (btn.innerText === 'Ver') {
+      codeElement.innerText = realToken;
+      btn.innerText = 'Ocultar';
+      codeElement.style.color = '#991B1B'; // Rojo alerta
+    } else {
+      codeElement.innerText = '••••••••••••';
+      btn.innerText = 'Ver';
+      codeElement.style.color = '';
+    }
+  }
+</script>
 
 </body>
 </html>

@@ -663,3 +663,104 @@ h6 { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: 
   background-color: var(--tinta);
   color: var(--papel);
 }
+
+
+
+
+/* ========================
+   GESTIÓN DE KEYS (MODAL)
+   ======================== */
+   .key-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border: var(--border-w) solid var(--gris-oscuro);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    background: var(--papel);
+  }
+  
+  .key-item .provider-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 14px;
+  }
+  
+  .key-item .default-badge {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 700;
+    background-color: #065F46; /* Verde oscuro acorde a tu paleta */
+    color: #FFFFFF;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    margin-left: 12px;
+    letter-spacing: 0.05em;
+  }
+  
+  .divider {
+    border-top: var(--border-w) solid var(--gris-claro);
+    margin: 24px 0;
+  }
+  
+  /* Checkbox personalizado para el form */
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .checkbox-group input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--tinta);
+    cursor: pointer;
+  }
+  .checkbox-group label {
+    margin-bottom: 0;
+    text-transform: none;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+
+
+
+  /* ========================
+   PANTALLA DE ÉXITO (TOKEN)
+   ======================== */
+.success-layout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.success-box {
+  width: 100%;
+  max-width: 600px;
+}
+
+.token-display {
+  background: var(--tinta);
+  color: #00E5A0;
+  padding: 16px;
+  font-family: ui-monospace, 'Courier New', monospace;
+  font-size: 14px;
+  word-break: break-all;
+  border: var(--border-w) solid var(--tinta);
+  margin: 16px 0 24px;
+  user-select: all;
+}
+
+.warn-box {
+  background: #FEF2F2;
+  color: #991B1B;
+  border: var(--border-w) solid #991B1B;
+  padding: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
