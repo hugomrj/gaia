@@ -56,7 +56,6 @@ func (s *Store) Reload() error {
 		t := &Tenant{}
 		var createdAt, updatedAt string
 		
-		// Incluimos token_plain en el Scan
 		if err := rows.Scan(&t.ID, &t.Slug, &t.Name, &t.TokenHash, &t.TokenPlain, &t.Status, &createdAt, &updatedAt); err != nil {
 			return err
 		}
@@ -71,7 +70,7 @@ func (s *Store) Reload() error {
 
 	// 2. Cabeceras (tenant_proveedor)
 	pRows, err := s.db.Query(`
-		SELECT tp.id, tp.tenant_id, p.name, tp.is_default 
+		SELECT tp.id, tp.tenant_id, p.name 
 		FROM tenant_proveedor tp
 		JOIN providers p ON p.id = tp.provider_id
 	`)
@@ -82,11 +81,9 @@ func (s *Store) Reload() error {
 
 	for pRows.Next() {
 		var tp TenantProvider
-		var isDefault int
-		if err := pRows.Scan(&tp.ID, &tp.TenantID, &tp.ProviderName, &isDefault); err != nil {
+		if err := pRows.Scan(&tp.ID, &tp.TenantID, &tp.ProviderName); err != nil {
 			return err
 		}
-		tp.IsDefault = isDefault == 1
 		tp.Keys = make([]APIKey, 0)
 
 		tpMap[tp.ID] = &tp
@@ -95,8 +92,10 @@ func (s *Store) Reload() error {
 		}
 	}
 
+
+
 	// 3. Llaves (keys)
-	kRows, err := s.db.Query(`SELECT id, tenant_proveedor_id, api_key_plain, api_key_enc, is_active FROM keys`)
+	kRows, err := s.db.Query(`SELECT id, tenant_proveedor_id, api_key_plain, api_key_enc, is_active, usage_count FROM keys`)
 	if err != nil {
 		return fmt.Errorf("query keys: %w", err)
 	}
@@ -109,7 +108,8 @@ func (s *Store) Reload() error {
 		var enc []byte
 		var isActive int
 
-		if err := kRows.Scan(&k.ID, &tpID, &plain, &enc, &isActive); err != nil {
+		// El Scan debe incluir &k.UsageCount
+		if err := kRows.Scan(&k.ID, &tpID, &plain, &enc, &isActive, &k.UsageCount); err != nil {
 			return err
 		}
 		if plain.Valid {
@@ -163,7 +163,6 @@ func (s *Store) List() []*Tenant {
 	return out
 }
 
-// Create inserta el Tenant guardando el token en texto plano y el hash
 func (s *Store) Create(slug, name string) (*Tenant, string, error) {
 	slug = strings.ToLower(strings.TrimSpace(slug))
 	if !reSlug.MatchString(slug) {
@@ -179,7 +178,6 @@ func (s *Store) Create(slug, name string) (*Tenant, string, error) {
 	}
 	now := time.Now().UTC()
 
-	// Insertamos incluyendo token_plain
 	res, err := s.db.Exec(
 		`INSERT INTO tenants (slug, name, token_hash, token_plain, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'active', ?, ?)`,
 		slug, name, hash, token, now.Format(time.RFC3339), now.Format(time.RFC3339),
@@ -192,7 +190,6 @@ func (s *Store) Create(slug, name string) (*Tenant, string, error) {
 	}
 	id, _ := res.LastInsertId()
 
-	// Creamos el tenant en memoria
 	newTenant := &Tenant{
 		ID:         id,
 		Slug:       slug,
@@ -248,7 +245,6 @@ func (s *Store) RotateToken(id int64) (*Tenant, string, error) {
 	}
 	now := time.Now().UTC()
 
-	// Actualizamos ambos campos en la DB
 	if _, err := s.db.Exec(
 		`UPDATE tenants SET token_hash = ?, token_plain = ?, updated_at = ? WHERE id = ?`,
 		hash, token, now.Format(time.RFC3339), id,
@@ -292,7 +288,6 @@ type GlobalKey struct {
 	TenantSlug   string
 	ProviderName string
 	APIKeyPlain  string
-	IsDefault    bool
 }
 
 func (g GlobalKey) MaskedKey() string {
@@ -322,7 +317,7 @@ func (s *Store) ListProviders() ([]string, error) {
 
 func (s *Store) ListAllKeys() ([]GlobalKey, error) {
 	q := `
-	SELECT k.id, t.name, t.slug, p.name, k.api_key_plain, tp.is_default
+	SELECT k.id, t.name, t.slug, p.name, k.api_key_plain
 	FROM keys k
 	JOIN tenant_proveedor tp ON tp.id = k.tenant_proveedor_id
 	JOIN tenants t ON t.id = tp.tenant_id
@@ -339,20 +334,42 @@ func (s *Store) ListAllKeys() ([]GlobalKey, error) {
 	for rows.Next() {
 		var gk GlobalKey
 		var apiKey sql.NullString
-		var isDefault int
-		if err := rows.Scan(&gk.KeyID, &gk.TenantName, &gk.TenantSlug, &gk.ProviderName, &apiKey, &isDefault); err != nil {
+		if err := rows.Scan(&gk.KeyID, &gk.TenantName, &gk.TenantSlug, &gk.ProviderName, &apiKey); err != nil {
 			return nil, err
 		}
 		if apiKey.Valid {
 			gk.APIKeyPlain = apiKey.String
 		}
-		gk.IsDefault = isDefault == 1
 		result = append(result, gk)
 	}
 	return result, nil
 }
 
-func (s *Store) AddKey(tenantID int64, providerName, apiKey string, isDefault bool) error {
+// LinkProvider asocia un proveedor a un tenant (crea la cabecera)
+func (s *Store) LinkProvider(tenantID int64, providerName string) error {
+	var providerID int64
+	err := s.db.QueryRow(`SELECT id FROM providers WHERE name = ?`, providerName).Scan(&providerID)
+	if err != nil {
+		return fmt.Errorf("proveedor %q no encontrado", providerName)
+	}
+
+	var tpID int64
+	err = s.db.QueryRow(`SELECT id FROM tenant_proveedor WHERE tenant_id = ? AND provider_id = ?`, tenantID, providerID).Scan(&tpID)
+	if err == nil {
+		return errors.New("el tenant ya tiene este proveedor habilitado")
+	}
+
+	// Insertamos sin el campo is_default
+	_, err = s.db.Exec(`INSERT INTO tenant_proveedor (tenant_id, provider_id) VALUES (?, ?)`, tenantID, providerID)
+	if err != nil {
+		return fmt.Errorf("insertar cabecera: %w", err)
+	}
+
+	return s.Reload()
+}
+
+// AddKey inserta una llave al proveedor (ya no recibe isDefault)
+func (s *Store) AddKey(tenantID int64, providerName, apiKey string) error {
 	if s.encrypt {
 		return errors.New("encriptación no implementada aún")
 	}
@@ -367,21 +384,14 @@ func (s *Store) AddKey(tenantID int64, providerName, apiKey string, isDefault bo
 	err = s.db.QueryRow(`SELECT id FROM tenant_proveedor WHERE tenant_id = ? AND provider_id = ?`, tenantID, providerID).Scan(&tpID)
 	
 	if err == sql.ErrNoRows {
-		var isDefInt int = 0
-		if isDefault { isDefInt = 1 }
-		
-		res, err := s.db.Exec(`INSERT INTO tenant_proveedor (tenant_id, provider_id, is_default) VALUES (?, ?, ?)`, tenantID, providerID, isDefInt)
+		// Si no existe la cabecera, la creamos
+		res, err := s.db.Exec(`INSERT INTO tenant_proveedor (tenant_id, provider_id) VALUES (?, ?)`, tenantID, providerID)
 		if err != nil {
 			return fmt.Errorf("insertar cabecera: %w", err)
 		}
 		tpID, _ = res.LastInsertId()
 	} else if err != nil {
 		return fmt.Errorf("buscar cabecera: %w", err)
-	} else if isDefault {
-		_, err = s.db.Exec(`UPDATE tenant_proveedor SET is_default = 1 WHERE id = ?`, tpID)
-		if err != nil {
-			return fmt.Errorf("actualizar default: %w", err)
-		}
 	}
 
 	_, err = s.db.Exec(
@@ -399,6 +409,116 @@ func (s *Store) DeleteKey(keyID int64) error {
 	_, err := s.db.Exec(`DELETE FROM keys WHERE id = ?`, keyID)
 	if err != nil {
 		return err
+	}
+	return s.Reload()
+}
+
+func (s *Store) UpdateName(id int64, name string) error {
+	if strings.TrimSpace(name) == "" {
+		return errors.New("el nombre no puede estar vacío")
+	}
+
+	now := time.Now().UTC()
+	_, err := s.db.Exec(`UPDATE tenants SET name = ?, updated_at = ? WHERE id = ?`, name, now.Format(time.RFC3339), id)
+	if err != nil {
+		return fmt.Errorf("update name: %w", err)
+	}
+
+	s.mu.Lock()
+	if t, ok := s.byID[id]; ok {
+		t.Name = name
+		t.UpdatedAt = now
+	}
+	s.mu.Unlock()
+	return nil
+}
+
+// ==========================================
+// MÓDULO DE PROVIDERS
+// ==========================================
+
+type ProviderInfo struct {
+	ID   int64
+	Name string
+}
+
+func (s *Store) CreateProvider(name string) error {
+	name = strings.ToLower(strings.TrimSpace(name))
+	if name == "" {
+		return errors.New("el nombre del proveedor no puede estar vacío")
+	}
+
+	_, err := s.db.Exec(`INSERT INTO providers (name) VALUES (?)`, name)
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE") {
+			return fmt.Errorf("el proveedor %q ya existe", name)
+		}
+		return fmt.Errorf("insert provider: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Store) ListProvidersWithID() ([]ProviderInfo, error) {
+	rows, err := s.db.Query(`SELECT id, name FROM providers ORDER BY name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []ProviderInfo
+	for rows.Next() {
+		var p ProviderInfo
+		if err := rows.Scan(&p.ID, &p.Name); err != nil {
+			return nil, err
+		}
+		result = append(result, p)
+	}
+	return result, nil
+}
+
+func (s *Store) UpdateProvider(id int64, name string) error {
+	name = strings.ToLower(strings.TrimSpace(name))
+	if name == "" {
+		return errors.New("el nombre no puede estar vacío")
+	}
+
+	_, err := s.db.Exec(`UPDATE providers SET name = ? WHERE id = ?`, name, id)
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE") {
+			return fmt.Errorf("el proveedor %q ya existe", name)
+		}
+		return fmt.Errorf("update provider: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) DeleteProvider(id int64) error {
+	var count int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM tenant_proveedor WHERE provider_id = ?`, id).Scan(&count)
+	if err != nil {
+		return fmt.Errorf("verificar uso: %w", err)
+	}
+
+	if count > 0 {
+		return fmt.Errorf("no se puede borrar: hay %d tenant(s) usando este proveedor", count)
+	}
+
+	_, err = s.db.Exec(`DELETE FROM providers WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("delete provider: %w", err)
+	}
+	return nil
+}
+
+
+
+// ToggleKeyStatus cambia el estado de una llave (activa/inactiva)
+func (s *Store) ToggleKeyStatus(keyID int64) error {
+	// NOT is_active invierte el valor (si es 1 pasa a 0, y viceversa)
+	_, err := s.db.Exec(`UPDATE keys SET is_active = NOT is_active WHERE id = ?`, keyID)
+	if err != nil {
+		return fmt.Errorf("toggle key: %w", err)
 	}
 	return s.Reload()
 }

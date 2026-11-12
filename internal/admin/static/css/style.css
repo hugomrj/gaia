@@ -466,8 +466,8 @@ h6 { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: 
   padding: 0;
   background: #FFFFFF;
   box-shadow: 4px 4px 0 0 var(--tinta); 
-  width: 100%;
-  max-width: 480px;
+  width: 100%;  
+  max-width: 700px;
   color: var(--tinta);
   opacity: 0;
   transform: scale(0.96) translateY(8px);
@@ -763,4 +763,126 @@ h6 { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: 
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 24px;
+}
+
+
+
+
+
+
+  .provider-pill {
+    display: inline-block;
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    border: 2px solid var(--tinta);
+    color: var(--tinta);
+    background: transparent;
+    transition: all 0.2s;
+    margin-right: 8px;
+  }
+  .provider-pill:hover {
+    background: var(--gris-claro);
+  }
+  .provider-pill.active {
+    background: var(--tinta);
+    color: var(--papel);
+  }
+  .key-reveal {
+    cursor: pointer;
+    user-select: none;
+  }
+  .key-reveal:hover {
+    background: var(--gris-claro);
+  }
+
+
+
+
+
+
+
+  /* ========================
+   SELECTS BRUTALISTAS
+   ======================== */
+select {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  background-color: #FFFFFF;
+  border: var(--border-w) solid var(--tinta);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tinta);
+  outline: none;
+  cursor: pointer;
+  
+  /* Quitamos la flecha nativa del navegador */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  
+  /* Flecha custom Brutalista (SVG con trazo grueso) */
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231A1A1A' stroke-width='3' stroke-linecap='square' stroke-linejoin='miter'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+  transition: all 0.15s ease;
+}
+
+select:hover {
+  background-color: var(--papel);
+  box-shadow: var(--shadow-brutal-sm);
+  transform: translate(-1px, -1px);
+}
+
+select:focus {
+  border-color: var(--tinta);
+  box-shadow: var(--shadow-brutal);
+  transform: translate(-1px, -1px);
+}
+
+/* Para las opciones internas del select (al desplegar) */
+select option {
+  font-family: var(--font-display);
+  font-weight: 600;
+  padding: 12px;
+  background-color: #FFFFFF;
+  color: var(--tinta);
+}
+
+/* ========================
+   SELECT GIGANTE (PANTALLA KEYS)
+   ======================== */
+.select-tenant {
+  font-size: 20px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+  padding: 16px 48px 16px 20px !important;
+  border: 2px solid var(--tinta) !important;
+  background-color: var(--papel) !important;
+  box-shadow: var(--shadow-brutal) !important;
+}
+
+
+
+
+/* ========================
+   FIX BOTONES APLASTADOS
+   ======================== */
+.btn-primary, .btn-secondary, .btn-danger {
+  white-space: nowrap; /* Prohíbe que el texto baje a la línea de abajo */
+  flex-shrink: 0;      /* Prohíbe que el navegador los encoja */
+}
+
+/* Darle más espacio a la columna de acciones en la tabla */
+.col-actions { 
+  width: 240px; 
+  text-align: right; 
 }

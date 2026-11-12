@@ -19,23 +19,16 @@ func (t *Tenant) IsActive() bool {
 	return t.Status == "active"
 }
 
-// GetActiveKey busca la API Key que se debe usar según el proveedor solicitado.
-// Si providerName está vacío, busca la cabecera marcada como default.
+
+
+
+
 func (t *Tenant) GetActiveKey(providerName string) (*APIKey, bool) {
 	var selectedProvider *TenantProvider
 
-	if providerName == "" {
-		// Buscar el proveedor por defecto
-		for i := range t.Providers {
-			if t.Providers[i].IsDefault {
-				selectedProvider = &t.Providers[i]
-				break
-			}
-		}
-		// Si no hay default, usar el primero que tenga
-		if selectedProvider == nil && len(t.Providers) > 0 {
-			selectedProvider = &t.Providers[0]
-		}
+	if providerName == "" && len(t.Providers) > 0 {
+		// Si no piden uno específico, usamos el primero que tenga el tenant
+		selectedProvider = &t.Providers[0]
 	} else {
 		// Buscar el proveedor por nombre
 		for i := range t.Providers {
@@ -50,7 +43,7 @@ func (t *Tenant) GetActiveKey(providerName string) (*APIKey, bool) {
 		return nil, false
 	}
 
-	// Retornar la primera llave activa
+	// Retornar la primera llave activa que encontremos
 	for i := range selectedProvider.Keys {
 		if selectedProvider.Keys[i].IsActive {
 			return &selectedProvider.Keys[i], true
@@ -59,6 +52,10 @@ func (t *Tenant) GetActiveKey(providerName string) (*APIKey, bool) {
 
 	return nil, false
 }
+
+
+
+
 
 // TenantProvider es la tabla intermedia (Cabecera)
 type TenantProvider struct {
@@ -75,4 +72,16 @@ type APIKey struct {
 	APIKeyPlain string
 	APIKeyEnc   []byte
 	IsActive    bool
+	UsageCount  int64 
 }
+
+// MaskedKey devuelve la llave enmascarada para mostrarla en la tabla de forma segura
+func (k APIKey) MaskedKey() string {
+	if len(k.APIKeyPlain) <= 8 {
+		return "••••••••"
+	}
+	return k.APIKeyPlain[:4] + "••••••••" + k.APIKeyPlain[len(k.APIKeyPlain)-4:]
+}
+
+
+

@@ -3,7 +3,6 @@ package admin
 
 import (
 	"net/http"
-	"strconv"
 
 	"gaia/internal/tenant"
 
@@ -15,12 +14,8 @@ type TenantsHandler struct {
 	adminUser string
 }
 
-// El constructor ahora recibe el nombre del admin
 func NewTenantsHandler(s *tenant.Store, adminUser string) *TenantsHandler {
-	return &TenantsHandler{
-		store:     s,
-		adminUser: adminUser,
-	}
+	return &TenantsHandler{store: s, adminUser: adminUser}
 }
 
 // GET /admin/tenants
@@ -36,8 +31,6 @@ func (h *TenantsHandler) List(c *gin.Context) {
 func (h *TenantsHandler) Create(c *gin.Context) {
 	slug := c.PostForm("slug")
 	name := c.PostForm("name")
-	
-	// Ya NO leemos provider ni api_key porque el tenant nace independiente
 
 	t, token, err := h.store.Create(slug, name)
 	if err != nil {
@@ -56,38 +49,72 @@ func (h *TenantsHandler) Create(c *gin.Context) {
 	})
 }
 
-// POST /admin/tenants/:id/delete
-func (h *TenantsHandler) Delete(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+// GET /admin/tenants/:slug
+func (h *TenantsHandler) Detail(c *gin.Context) {
+	slug := c.Param("slug")
 	
-	if err := h.store.Delete(id); err != nil {
-		c.HTML(http.StatusBadRequest, "tenants.html", gin.H{
-			"User":    h.adminUser,
-			"Active":  "tenants",
-			"tenants": h.store.List(),
-			"error":   "Error al borrar: " + err.Error(),
-		})
+	t, ok := h.store.GetBySlug(slug)
+	if !ok {
+		c.Redirect(http.StatusFound, "/admin/tenants")
+		return
+	}
+
+	c.HTML(http.StatusOK, "tenant_detail.html", gin.H{
+		"User":   h.adminUser,
+		"Active": "tenants",
+		"tenant": t,
+	})
+}
+
+// POST /admin/tenants/:slug/edit
+func (h *TenantsHandler) Update(c *gin.Context) {
+	slug := c.Param("slug")
+	name := c.PostForm("name")
+
+	t, ok := h.store.GetBySlug(slug)
+	if !ok {
+		c.Redirect(http.StatusFound, "/admin/tenants")
+		return
+	}
+
+	if err := h.store.UpdateName(t.ID, name); err != nil {
+		c.Redirect(http.StatusFound, "/admin/tenants/"+slug)
+		return
+	}
+
+	c.Redirect(http.StatusFound, "/admin/tenants/"+slug)
+}
+
+// POST /admin/tenants/:slug/delete
+func (h *TenantsHandler) Delete(c *gin.Context) {
+	slug := c.Param("slug")
+	
+	t, ok := h.store.GetBySlug(slug)
+	if !ok {
+		c.Redirect(http.StatusFound, "/admin/tenants")
 		return
 	}
 	
+	h.store.Delete(t.ID)
 	c.Redirect(http.StatusFound, "/admin/tenants")
 }
 
-// POST /admin/tenants/:id/rotate
+// POST /admin/tenants/:slug/rotate
 func (h *TenantsHandler) Rotate(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	slug := c.Param("slug")
 	
-	t, token, err := h.store.RotateToken(id)
-	if err != nil {
-		c.HTML(http.StatusBadRequest, "tenants.html", gin.H{
-			"User":    h.adminUser,
-			"Active":  "tenants",
-			"tenants": h.store.List(),
-			"error":   "Error al rotar token: " + err.Error(),
-		})
+	t, ok := h.store.GetBySlug(slug)
+	if !ok {
+		c.Redirect(http.StatusFound, "/admin/tenants")
 		return
 	}
 	
+	t, token, err := h.store.RotateToken(t.ID)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/admin/tenants/"+slug)
+		return
+	}
+
 	c.HTML(http.StatusOK, "tenant_created.html", gin.H{
 		"tenant": t,
 		"token":  token,

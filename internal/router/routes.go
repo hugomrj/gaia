@@ -28,7 +28,8 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 	apiHandler := handlers.NewAPIHandler(gaiaBrain)
 	healthHandler := handlers.NewHealthHandler()
 	tenantsHandler := adminPkg.NewTenantsHandler(store, adminUser)
-	keysHandler := adminPkg.NewKeysHandler(store, adminUser) // <-- NUEVO
+	keysHandler := adminPkg.NewKeysHandler(store, adminUser)
+	providersHandler := adminPkg.NewProvidersHandler(store, adminUser)
 
 	// 3. Rutas Públicas y de Salud
 	router.GET("/health", healthHandler.Health)
@@ -45,8 +46,9 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 		c.HTML(http.StatusOK, "docs.html", nil)
 	})
 
-	// 4. API de GAIA (Aquí entran y salen los datos del cliente)
-	v1 := router.Group("/v1")
+	// 4. API de GAIA (Protegida por Middleware)
+	v1 := router.Group("/v1/:tenant")
+	v1.Use(TenantAuth(store)) // <-- MIDDLEWARE APLICADO AQUÍ
 	{
 		v1.POST("/analyze", apiHandler.Analyze)
 		v1.POST("/synthesize", apiHandler.Synthesize)
@@ -125,12 +127,23 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 		// Tenants
 		adminGroup.GET("/tenants", tenantsHandler.List)
 		adminGroup.POST("/tenants", tenantsHandler.Create)
-		adminGroup.POST("/tenants/:id/delete", tenantsHandler.Delete)
-		adminGroup.POST("/tenants/:id/rotate", tenantsHandler.Rotate)
+		adminGroup.GET("/tenants/:slug", tenantsHandler.Detail)        
+		adminGroup.POST("/tenants/:slug/edit", tenantsHandler.Update)  
+		adminGroup.POST("/tenants/:slug/delete", tenantsHandler.Delete) 
+		adminGroup.POST("/tenants/:slug/rotate", tenantsHandler.Rotate) 
 
-		// Keys <-- NUEVO
+		// Keys
 		adminGroup.GET("/keys", keysHandler.List)
 		adminGroup.POST("/keys", keysHandler.Create)
+		adminGroup.POST("/keys/provider", keysHandler.LinkProvider) 
+		adminGroup.POST("/keys/:id/toggle", keysHandler.ToggleKey) 
+		adminGroup.POST("/keys/:id/delete", keysHandler.Delete)
+
+		// Providers
+		adminGroup.GET("/providers", providersHandler.List)
+		adminGroup.POST("/providers", providersHandler.Create)
+		adminGroup.POST("/providers/:id/edit", providersHandler.Edit)
+		adminGroup.POST("/providers/:id/delete", providersHandler.Delete)
 	}
 
 	return router

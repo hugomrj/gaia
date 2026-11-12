@@ -1,0 +1,134 @@
+{{ define "tenant_detail.html" }}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API de {{ .tenant.Name }} · GAIA</title>
+<link rel="stylesheet" href="/admin/static/css/style.css">
+<style>
+  .code-block {
+    background: var(--tinta);
+    color: #00E5A0;
+    padding: 20px;
+    font-family: ui-monospace, 'Courier New', monospace;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.6;
+    margin-top: 12px;
+  }
+  .code-block .comment { color: #737373; }
+  .code-block .string { color: #FBBF24; }
+</style>
+</head>
+<body>
+
+<div class="app-layout">
+  {{ template "sidebar" . }}
+
+  <main class="app-content">
+
+    <div class="page-header">
+      <div>
+        <div style="font-size: 13px; text-transform: uppercase; color: var(--gris-medio); margin-bottom: 8px;">
+          <a href="/admin/tenants" style="color: inherit; text-decoration: none;">← Volver a Tenants</a>
+        </div>
+        <h1>Uso de la API</h1>
+        <p>Integración para <strong>{{ .tenant.Name }}</strong></p>
+      </div>
+      <a href="/admin/keys?tenant={{ .tenant.Slug }}" class="btn-secondary" style="width: auto;">
+        Gestionar API Keys →
+      </a>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 32px;">
+      
+      <!-- COLUMNA IZQUIERDA: TOKEN Y DATOS -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <div class="card">
+          <h2 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 16px;">Tu Token de Acceso</h2>
+          <p style="font-size: 13px; color: var(--gris-medio); margin-bottom: 16px;">
+            Usá este token en el header <code>Authorization</code> para autenticar tus peticiones.
+          </p>
+          <div class="form-group">
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="token-{{ .tenant.ID }}" value="{{ .tenant.TokenPlain }}" readonly style="background-color: var(--papel); font-family: monospace; font-size: 12px;">
+              <button type="button" class="btn-secondary" onclick="copyToken('{{ .tenant.ID }}')" style="width: auto; padding: 0 16px;">Copiar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 16px;">Datos del Endpoint</h2>
+          
+          <div class="form-group">
+            <label>Base URL</label>
+            <code class="slug-code" style="display: block; padding: 8px; font-size: 12px;">http://localhost:8080</code>
+          </div>
+          
+          <div class="form-group">
+            <label>Ruta (Endpoint)</label>
+            <code class="slug-code" style="display: block; padding: 8px; font-size: 12px;">/v1/{{ .tenant.Slug }}/analyze</code>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- COLUMNA DERECHA: TUTORIAL -->
+      <div class="card">
+        <h2 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;">Ejemplo de Uso</h2>
+        <p style="font-size: 13px; color: var(--gris-medio); margin-bottom: 24px;">
+          Copiá y pegá este código para hacer tu primera petición. Podés cambiar el mensaje de ejemplo por lo que necesites.
+        </p>
+
+        <h3 style="font-size: 14px; margin-bottom: 4px;">cURL</h3>
+        <div class="code-block">
+curl -X POST http://localhost:8080/v1/{{ .tenant.Slug }}/analyze \
+  -H <span class="string">"Authorization: Bearer {{ .tenant.TokenPlain }}"</span> \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d <span class="string">'{"message": "cuanto facture hoy"}'</span></div>
+
+        <h3 style="font-size: 14px; margin-top: 32px; margin-bottom: 4px;">JavaScript (Fetch)</h3>
+        <div class="code-block">
+fetch(<span class="string">"http://localhost:8080/v1/{{ .tenant.Slug }}/analyze"</span>, {
+  method: <span class="string">"POST"</span>,
+  headers: {
+    <span class="string">"Authorization"</span>: <span class="string">"Bearer {{ .tenant.TokenPlain }}"</span>,
+    <span class="string">"Content-Type"</span>: <span class="string">"application/json"</span>
+  },
+  body: JSON.stringify({
+    message: <span class="string">"cuanto facture hoy"</span>
+  })
+})
+.then(res => res.json())
+.then(data => console.log(data));</div>
+
+        <div style="margin-top: 32px; padding: 16px; background: #FEF2F2; border: 1px solid #991B1B; color: #991B1B; font-size: 13px; border-radius: var(--radius-sm);">
+          <strong>⚠️ Importante:</strong> No compartas este token en lugares públicos. Si se filtra, pedile al administrador que lo rote.
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  function copyToken(id) {
+    const input = document.getElementById('token-' + id);
+    input.select();
+    input.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(input.value).then(() => {
+      alert('¡Token copiado al portapapeles!');
+    }).catch(() => {
+      alert('No se pudo copiar automáticamente.');
+    });
+  }
+</script>
+
+</body>
+</html>
+{{ end }}

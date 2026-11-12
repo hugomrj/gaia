@@ -36,7 +36,6 @@
             <th>Slug</th>
             <th>Nombre</th>
             <th>Providers</th>
-            <th>Token de Acceso</th> <!-- COLUMNA NUEVA -->
             <th class="col-status">Status</th>
             <th class="col-actions">Acciones</th>
           </tr>
@@ -55,50 +54,90 @@
               {{ end }}
             </td>
             <td>
-              <!-- CELDA NUEVA CON BOTÓN VER -->
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <code class="slug-code" 
-                      data-key="{{ .TokenPlain }}" 
-                      id="token-{{ .ID }}">
-                  ••••••••••••
-                </code>
-                <button type="button" 
-                        class="btn-secondary" 
-                        style="padding: 4px 8px; font-size: 10px;"
-                        data-id="{{ .ID }}"
-                        onclick="toggleToken(this)">
-                  Ver
-                </button>
-              </div>
-            </td>
-            <td>
               <span class="badge {{ if .IsActive }}badge-success{{ else }}badge-warning{{ end }}">
                 {{ .Status }}
               </span>
             </td>
             <td>
               <div class="table-actions">
+                <!-- BOTÓN ADMIN (Abre el Modal) -->
                 <button type="button" class="btn-secondary btn-sm" 
-                  data-id="{{ .ID }}" 
-                  data-name="{{ .Name }}" 
-                  data-providers="{{ len .Providers }}"
-                  onclick="openKeysModal(this)">
-                  Keys
+                        onclick="document.getElementById('modal-manage-{{ .ID }}').showModal()">
+                  Admin
                 </button>
-                <form method="POST" action="/admin/tenants/{{ .ID }}/rotate"
-                      onsubmit="return confirm('¿Rotar el token de {{ .Slug }}?')">
-                  <button type="submit" class="btn-secondary btn-sm">Rotar</button>
-                </form>
-                <form method="POST" action="/admin/tenants/{{ .ID }}/delete"
-                      onsubmit="return confirm('¿Borrar tenant {{ .Slug }}?')">
-                  <button type="submit" class="btn-danger btn-sm">Borrar</button>
-                </form>
+                
+                <!-- BOTÓN VER API (Va a la nueva pantalla) -->
+                <a href="/admin/tenants/{{ .Slug }}" class="btn-primary btn-sm" style="text-decoration: none;">
+                  Ver API
+                </a>
               </div>
             </td>
           </tr>
+
+          <!-- MODAL DE ADMINISTRACIÓN (Oculto) -->
+          <dialog id="modal-manage-{{ .ID }}" class="modal">
+            <div class="modal-header">
+              <h2>Administrar {{ .Name }}</h2>
+              <button type="button" class="modal-close" onclick="document.getElementById('modal-manage-{{ .ID }}').close()">×</button>
+            </div>
+            
+            <div class="modal-body">
+              
+              <!-- Formulario de Edición (Nombre) -->
+              <form id="form-edit-{{ .ID }}" method="POST" action="/admin/tenants/{{ .Slug }}/edit">
+                <div class="form-group">
+                  <label>ID del Sistema</label>
+                  <input type="text" value="{{ .ID }}" disabled style="background-color: var(--gris-claro); cursor: not-allowed;">
+                </div>
+
+                <div class="form-group">
+                  <label>Slug (URL de la API)</label>
+                  <input type="text" value="{{ .Slug }}" disabled style="background-color: var(--gris-claro); cursor: not-allowed;">
+                </div>
+
+                <div class="form-group">
+                  <label for="name-{{ .ID }}">Nombre del Cliente</label>
+                  <input type="text" id="name-{{ .ID }}" name="name" value="{{ .Name }}" required style="background-color: #FFFFFF;">
+                </div>
+              </form>
+
+              <!-- Token de Acceso -->
+              <div class="form-group">
+                <label>Token de Acceso</label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" id="token-{{ .ID }}" value="{{ .TokenPlain }}" readonly style="background-color: var(--papel); font-family: monospace; font-size: 12px;">
+                  <button type="button" class="btn-secondary" onclick="copyToken('{{ .ID }}')" style="width: auto; padding: 0 16px;">Copiar</button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Footer con las acciones -->
+            <div class="modal-footer" style="justify-content: space-between;">
+              
+              <!-- Botón Borrar (Izquierda) -->
+              <form method="POST" action="/admin/tenants/{{ .Slug }}/delete" onsubmit="return confirm('¿Borrar tenant {{ .Slug }}? Esta acción es irreversible.')">
+                <button type="submit" class="btn-danger">Borrar</button>
+              </form>
+
+              <!-- Botones de Cerrar y Rotar / Guardar (Derecha) -->
+              <div style="display: flex; gap: 12px;">
+                <form method="POST" action="/admin/tenants/{{ .Slug }}/rotate" onsubmit="return confirm('¿Rotar el token? El anterior dejará de funcionar inmediatamente.')">
+                  <button type="submit" class="btn-secondary">Rotar Token</button>
+                </form>
+                
+                <button type="button" class="btn-secondary" onclick="document.getElementById('modal-manage-{{ .ID }}').close()">Cancelar</button>
+                
+                <button type="submit" form="form-edit-{{ .ID }}" class="btn-primary" style="width: auto;">Guardar Cambios</button>
+              </div>
+
+            </div>
+          </dialog>
+          <!-- FIN MODAL DE ADMINISTRACIÓN -->
+
           {{ else }}
           <tr>
-            <td colspan="7" class="empty-state"> <!-- Colspan actualizado a 7 -->
+            <td colspan="6" class="empty-state">
               <p>No hay tenants todavía.</p>
               <a href="#" onclick="document.getElementById('modal-new').showModal(); return false;" class="btn-secondary btn-sm">
                 + Crear el primero
@@ -110,7 +149,7 @@
       </table>
     </div>
 
-    <!-- MODAL 1: CREAR TENANT -->
+    <!-- MODAL CREAR TENANT -->
     <dialog id="modal-new" class="modal">
       <div class="modal-header">
         <h2>Nuevo tenant</h2>
@@ -126,9 +165,6 @@
             <label for="name">Nombre</label>
             <input id="name" name="name" placeholder="Clínica Ramírez" required>
           </div>
-          <p style="font-size: 13px; color: var(--gris-medio); margin-top: 16px;">
-            Después de crear el cliente, podrás asignarle proveedores y API Keys desde la sección de Keys.
-          </p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-secondary" onclick="document.getElementById('modal-new').close()">Cancelar</button>
@@ -137,90 +173,19 @@
       </form>
     </dialog>
 
-    <!-- MODAL 2: GESTIONAR KEYS -->
-    <dialog id="modal-keys" class="modal">
-      <div class="modal-header">
-        <h2 id="keys-modal-title">Keys del Tenant</h2>
-        <button type="button" class="modal-close" onclick="document.getElementById('modal-keys').close()">×</button>
-      </div>
-      <div class="modal-body">
-        
-        <div id="keys-list-container">
-          <h3>Proveedores Configurados</h3>
-          <div id="keys-list" class="mt-12">
-            <!-- JS inyectará los items acá -->
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <form id="form-add-key" method="POST" action="">
-          <h3 class="mb-16">+ Agregar Proveedor</h3>
-          
-          <div class="form-group">
-            <label>Proveedor</label>
-            <select name="provider" required>
-              <option value="openai">OpenAI</option>
-              <option value="anthropic">Anthropic</option>
-              <option value="mistral">Mistral</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>API Key</label>
-            <input name="api_key" type="password" required placeholder="sk-...">
-          </div>
-          <div class="form-group checkbox-group">
-            <input type="checkbox" name="is_default" id="is_default" value="1">
-            <label for="is_default">Usar como proveedor por defecto</label>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" onclick="document.getElementById('modal-keys').close()">Cerrar</button>
-        <button type="submit" form="form-add-key" class="btn-primary" style="width: auto;">Guardar Key</button>
-      </div>
-    </dialog>
-
   </main>
 </div>
 
 <script>
-  // Función para abrir el modal de keys
-  function openKeysModal(btn) {
-    const tenantId = btn.getAttribute('data-id');
-    const tenantName = btn.getAttribute('data-name');
-    const providerCount = parseInt(btn.getAttribute('data-providers'), 10);
-
-    document.getElementById('keys-modal-title').innerText = 'Keys de ' + tenantName;
-    document.getElementById('form-add-key').action = '/admin/tenants/' + tenantId + '/keys';
-    
-    const listContainer = document.getElementById('keys-list');
-    listContainer.innerHTML = ''; // Limpiar
-    
-    if (providerCount > 0) {
-      listContainer.innerHTML = `<p class="kpi-hint">El tenant tiene ${providerCount} proveedor(es) configurado(s).</p>`;
-    } else {
-      listContainer.innerHTML = '<p class="kpi-hint">No hay keys configuradas.</p>';
-    }
-
-    document.getElementById('modal-keys').showModal();
-  }
-
-  // Función para ver/ocultar el Token
-  function toggleToken(btn) {
-    const tenantId = btn.getAttribute('data-id');
-    const codeElement = document.getElementById('token-' + tenantId);
-    const realToken = codeElement.getAttribute('data-key');
-
-    if (btn.innerText === 'Ver') {
-      codeElement.innerText = realToken;
-      btn.innerText = 'Ocultar';
-      codeElement.style.color = '#991B1B'; // Rojo alerta
-    } else {
-      codeElement.innerText = '••••••••••••';
-      btn.innerText = 'Ver';
-      codeElement.style.color = '';
-    }
+  function copyToken(id) {
+    const input = document.getElementById('token-' + id);
+    input.select();
+    input.setSelectionRange(0, 99999); // Para móviles
+    navigator.clipboard.writeText(input.value).then(() => {
+      alert('¡Token copiado al portapapeles!');
+    }).catch(() => {
+      alert('No se pudo copiar automáticamente. Por favor, copialo manualmente.');
+    });
   }
 </script>
 

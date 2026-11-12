@@ -1,0 +1,105 @@
+{{ define "providers.html" }}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Providers · GAIA</title>
+<link rel="stylesheet" href="/admin/static/css/style.css">
+</head>
+<body>
+
+<div class="app-layout">
+  {{ template "sidebar" . }}
+
+  <main class="app-content">
+
+    <div class="page-header">
+      <div>
+        <h1>Providers</h1>
+        <p>Catálogo de Proveedores de IA</p>
+      </div>
+      <button type="button" class="btn-primary" style="width: auto;" onclick="document.getElementById('modal-new').showModal()">
+        + Nuevo Provider
+      </button>
+    </div>
+
+    {{ if .error }}
+    <div class="alert alert-error">{{ .error }}</div>
+    {{ end }}
+
+    <!-- GRILLA DE TARJETAS -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px;">
+      {{ range .providers }}
+      <div class="card" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between; min-height: 160px;">
+        
+        <h3 style="font-size: 24px; text-transform: uppercase; font-weight: 900; margin-bottom: 24px;">
+          {{ .Name }}
+        </h3>
+        
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <!-- Botón Editar (abre su propio modal) -->
+          <button type="button" class="btn-secondary btn-sm" 
+                  onclick="document.getElementById('modal-edit-{{ .ID }}').showModal()">
+            Editar
+          </button>
+          
+          <!-- Botón Borrar -->
+          <form method="POST" action="/admin/providers/{{ .ID }}/delete" onsubmit="return confirm('¿Borrar el proveedor {{ .Name }}?')">
+            <button type="submit" class="btn-danger btn-sm">Borrar</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- MODAL DE EDICIÓN (Oculto, uno por cada tarjeta) -->
+      <dialog id="modal-edit-{{ .ID }}" class="modal">
+        <div class="modal-header">
+          <h2>Editar Proveedor</h2>
+          <button type="button" class="modal-close" onclick="document.getElementById('modal-edit-{{ .ID }}').close()">×</button>
+        </div>
+        <form method="POST" action="/admin/providers/{{ .ID }}/edit">
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="name-{{ .ID }}">Nombre del Proveedor</label>
+              <input id="name-{{ .ID }}" name="name" value="{{ .Name }}" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="document.getElementById('modal-edit-{{ .ID }}').close()">Cancelar</button>
+            <button type="submit" class="btn-primary" style="width: auto;">Guardar Cambios</button>
+          </div>
+        </form>
+      </dialog>
+
+      {{ else }}
+      <div class="empty-state" style="grid-column: 1 / -1;">
+        <p>No hay proveedores registrados en el catálogo.</p>
+      </div>
+      {{ end }}
+    </div>
+
+    <!-- MODAL NUEVO PROVIDER -->
+    <dialog id="modal-new" class="modal">
+      <div class="modal-header">
+        <h2>Nuevo Proveedor</h2>
+        <button type="button" class="modal-close" onclick="document.getElementById('modal-new').close()">×</button>
+      </div>
+      <form method="POST" action="/admin/providers">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="name">Nombre del Proveedor</label>
+            <input id="name" name="name" placeholder="ollama, llama-cpp, etc." required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="document.getElementById('modal-new').close()">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width: auto;">Crear Provider</button>
+        </div>
+      </form>
+    </dialog>
+
+  </main>
+</div>
+</body>
+</html>
+{{ end }}

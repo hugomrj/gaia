@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS keys (
     api_key_plain       TEXT,
     api_key_enc         BLOB,
     is_active           INTEGER NOT NULL DEFAULT 1,
+    usage_count         INTEGER NOT NULL DEFAULT 0, -- <-- ESTO ES CLAVE
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tenant_proveedor_id) REFERENCES tenant_proveedor(id) ON DELETE CASCADE
 );
