@@ -5,9 +5,7 @@ import (
 	"log"
 	"os"
 
-	"gaia/internal/brain"
 	"gaia/internal/db"
-	"gaia/internal/providers/mistral"
 	"gaia/internal/router"
 	"gaia/internal/tenant"
 
@@ -45,7 +43,7 @@ func main() {
 	}
 	defer database.Close()
 
-	// 2. Store (carga tenants en memoria)
+	// 2. Store (carga tenants + providers + keys en memoria)
 	encryptKeys := os.Getenv("ENCRYPT_KEYS") == "true"
 	store, err := tenant.NewStore(database, encryptKeys)
 	if err != nil {
@@ -53,12 +51,8 @@ func main() {
 	}
 	log.Printf("GAIA cargó %d tenant(s) en memoria", len(store.List()))
 
-	// 3. Cerebro
-	llmProvider := mistral.NewClient()
-	gaiaBrain := brain.NewBrain(llmProvider)
-
-	// 4. Router
-	appRouter := router.Setup(adminUser, adminPasswordHash, gaiaBrain, store)
+	// 3. Router (crea el Brain internamente, sin llave global)
+	appRouter := router.Setup(adminUser, adminPasswordHash, store)
 
 	log.Printf("GAIA iniciando en http://localhost:%s", port)
 	if err := appRouter.Run(":" + port); err != nil {

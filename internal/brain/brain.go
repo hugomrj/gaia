@@ -11,29 +11,30 @@ import (
 	"gaia/internal/providers"
 )
 
+// Brain es una cáscara sin estado: el LLM se inyecta en cada llamada.
 type Brain struct {
 	Planner     *planner.Planner
 	Synthesizer *synthesizer.Synthesizer
 	Normalizer  *normalizer.Normalizer
 }
 
-func NewBrain(llm providers.LLMProvider) *Brain {
+func NewBrain() *Brain {
 	return &Brain{
-		Planner:     planner.NewPlanner(llm),
-		Synthesizer: synthesizer.NewSynthesizer(llm),
+		Planner:     planner.NewPlanner(),
+		Synthesizer: synthesizer.NewSynthesizer(),
 		Normalizer:  normalizer.New(),
 	}
 }
 
-func (b *Brain) ProcessMessage(ctx context.Context, req models.ChatRequest) (*models.AnalysisResponse, error) {
-	return b.Planner.Analyze(ctx, req)
+func (b *Brain) ProcessMessage(ctx context.Context, req models.ChatRequest, llm providers.LLMProvider) (*models.AnalysisResponse, error) {
+	return b.Planner.Analyze(ctx, req, llm)
 }
 
-func (b *Brain) ProcessResult(ctx context.Context, req models.SynthesisRequest) (*models.SynthesisResponse, error) {
-	return b.Synthesizer.Synthesize(ctx, req)
+func (b *Brain) ProcessResult(ctx context.Context, req models.SynthesisRequest, llm providers.LLMProvider) (*models.SynthesisResponse, error) {
+	return b.Synthesizer.Synthesize(ctx, req, llm)
 }
 
-// Normalize aplica reglas determinísticas a los parámetros
+// Normalize es 100% determinístico: no usa LLM.
 func (b *Brain) Normalize(params map[string]interface{}) *models.NormalizeResponse {
 	normalized, ok, notOk := b.Normalizer.Normalize(params)
 	return &models.NormalizeResponse{

@@ -1,3 +1,4 @@
+//	internal/brain/synthesizer/synthesizer.go
 package synthesizer
 
 import (
@@ -37,13 +38,11 @@ var (
 )
 
 type Synthesizer struct {
-	llm      providers.LLMProvider
 	timezone string
 }
 
-func NewSynthesizer(llm providers.LLMProvider) *Synthesizer {
+func NewSynthesizer() *Synthesizer {
 	return &Synthesizer{
-		llm:      llm,
 		timezone: DefaultTimezone,
 	}
 }
@@ -60,6 +59,7 @@ func (s *Synthesizer) SetTimezone(tz string) {
 func (s *Synthesizer) Synthesize(
 	ctx context.Context,
 	req models.SynthesisRequest,
+	llm providers.LLMProvider,
 ) (*models.SynthesisResponse, error) {
 
 	now := s.currentTime()
@@ -102,7 +102,7 @@ func (s *Synthesizer) Synthesize(
 		{Role: "system", Content: systemPrompt},
 	}
 
-	llmResponse, err := s.llm.Chat(ctx, messages, nil)
+	llmResponse, err := llm.Chat(ctx, messages, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error al llamar al LLM en síntesis: %w", err)
 	}

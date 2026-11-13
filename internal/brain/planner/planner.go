@@ -19,16 +19,16 @@ const (
 )
 
 type Planner struct {
-	llm      providers.LLMProvider
 	timezone string
 }
 
-func NewPlanner(llm providers.LLMProvider) *Planner {
+func NewPlanner() *Planner {
 	return &Planner{
-		llm:      llm,
 		timezone: DefaultTimezone,
 	}
 }
+
+
 
 func (p *Planner) SetTimezone(tz string) {
 	if tz != "" {
@@ -39,6 +39,7 @@ func (p *Planner) SetTimezone(tz string) {
 func (p *Planner) Analyze(
 	ctx context.Context,
 	req models.ChatRequest,
+	llm providers.LLMProvider,
 ) (*models.AnalysisResponse, error) {
 
 	now := p.currentTime()
@@ -55,7 +56,7 @@ func (p *Planner) Analyze(
 
 	tools := p.getAnalysisTools()
 
-	llmResponse, err := p.llm.Chat(ctx, messages, tools)
+	llmResponse, err := llm.Chat(ctx, messages, tools)
 	if err != nil {
 		return nil, fmt.Errorf("error al llamar al LLM: %w", err)
 	}

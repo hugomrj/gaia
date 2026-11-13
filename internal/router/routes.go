@@ -15,8 +15,9 @@ import (
 	"gaia/internal/tenant"
 )
 
-// Setup configura y devuelve el router de Gin con todas las rutas registradas
-func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *tenant.Store) *gin.Engine {
+// Setup configura y devuelve el router de Gin con todas las rutas registradas.
+// El Brain se crea acá internamente (stateless, sin key global).
+func Setup(adminUser, adminPasswordHash string, store *tenant.Store) *gin.Engine {
 	router := gin.Default()
 
 	// 1. Configuración de vistas y estáticos (Admin Panel)
@@ -25,7 +26,8 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 	router.Static("/examples", "examples")
 
 	// 2. Inicializar Handlers
-	apiHandler := handlers.NewAPIHandler(gaiaBrain)
+	gaiaBrain := brain.NewBrain()
+	apiHandler := handlers.NewAPIHandler(gaiaBrain, store)
 	healthHandler := handlers.NewHealthHandler()
 	tenantsHandler := adminPkg.NewTenantsHandler(store, adminUser)
 	keysHandler := adminPkg.NewKeysHandler(store, adminUser)
@@ -48,7 +50,7 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 
 	// 4. API de GAIA (Protegida por Middleware)
 	v1 := router.Group("/v1/:tenant")
-	v1.Use(TenantAuth(store)) // <-- MIDDLEWARE APLICADO AQUÍ
+	v1.Use(TenantAuth(store))
 	{
 		v1.POST("/analyze", apiHandler.Analyze)
 		v1.POST("/synthesize", apiHandler.Synthesize)
@@ -100,7 +102,6 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 				}
 			}
 
-			// Ordenar por ID descendente (más recientes primero)
 			sort.Slice(tenants, func(i, j int) bool {
 				return tenants[i].ID > tenants[j].ID
 			})
@@ -127,16 +128,16 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 		// Tenants
 		adminGroup.GET("/tenants", tenantsHandler.List)
 		adminGroup.POST("/tenants", tenantsHandler.Create)
-		adminGroup.GET("/tenants/:slug", tenantsHandler.Detail)        
-		adminGroup.POST("/tenants/:slug/edit", tenantsHandler.Update)  
-		adminGroup.POST("/tenants/:slug/delete", tenantsHandler.Delete) 
-		adminGroup.POST("/tenants/:slug/rotate", tenantsHandler.Rotate) 
+		adminGroup.GET("/tenants/:slug", tenantsHandler.Detail)
+		adminGroup.POST("/tenants/:slug/edit", tenantsHandler.Update)
+		adminGroup.POST("/tenants/:slug/delete", tenantsHandler.Delete)
+		adminGroup.POST("/tenants/:slug/rotate", tenantsHandler.Rotate)
 
 		// Keys
 		adminGroup.GET("/keys", keysHandler.List)
 		adminGroup.POST("/keys", keysHandler.Create)
-		adminGroup.POST("/keys/provider", keysHandler.LinkProvider) 
-		adminGroup.POST("/keys/:id/toggle", keysHandler.ToggleKey) 
+		adminGroup.POST("/keys/provider", keysHandler.LinkProvider)
+		adminGroup.POST("/keys/:id/toggle", keysHandler.ToggleKey)
 		adminGroup.POST("/keys/:id/delete", keysHandler.Delete)
 
 		// Providers
@@ -149,7 +150,6 @@ func Setup(adminUser, adminPasswordHash string, gaiaBrain *brain.Brain, store *t
 	return router
 }
 
-// requireAuth es el middleware para proteger las rutas de admin
 func requireAuth(c *gin.Context) {
 	_, err := c.Cookie("gaia_session")
 	if err != nil {

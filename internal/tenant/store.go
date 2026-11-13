@@ -522,3 +522,29 @@ func (s *Store) ToggleKeyStatus(keyID int64) error {
 	}
 	return s.Reload()
 }
+
+
+
+// IncrementUsageCount suma +1 al usage_count de una key.
+// Actualiza SQLite y la copia en memoria (para el panel de admin).
+func (s *Store) IncrementUsageCount(keyID int64) error {
+	if _, err := s.db.Exec(
+		`UPDATE keys SET usage_count = usage_count + 1 WHERE id = ?`, keyID,
+	); err != nil {
+		return fmt.Errorf("increment usage_count: %w", err)
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, t := range s.byID {
+		for i := range t.Providers {
+			for j := range t.Providers[i].Keys {
+				if t.Providers[i].Keys[j].ID == keyID {
+					t.Providers[i].Keys[j].UsageCount++
+					return nil
+				}
+			}
+		}
+	}
+	return nil // si no estaba en memoria, no es error fatal
+}

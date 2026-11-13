@@ -1,4 +1,4 @@
-/* internal/providers/mistral/client.go */
+// internal/providers/mistral/client.go 
 package mistral
 
 import (
@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
+	"strings"
 	"time"
 
 	"gaia/internal/models"
@@ -17,6 +17,9 @@ import (
 )
 
 const mistralAPIURL = "https://api.mistral.ai/v1/chat/completions"
+
+// defaultModel es el modelo que se usa si el cliente NO envía el header X-Model.
+const defaultModel = "open-mistral-nemo"
 
 type Client struct {
 	apiKey     string
@@ -33,6 +36,37 @@ type mistralRequest struct {
 	MaxTokens   int                 `json:"max_tokens,omitempty"`
 }
 
+// flexibleString maneja el campo "content" que puede venir como string
+// (modelos viejos) o como array de bloques (modelos nuevos).
+type flexibleString string
+
+func (f *flexibleString) UnmarshalJSON(data []byte) error {
+	// 1. Intentar parsear como string
+	var s string
+	if err := json.Unmarshal(data, &s); err == nil {
+		*f = flexibleString(s)
+		return nil
+	}
+
+	// 2. Intentar parsear como array de bloques de texto
+	var arr []struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	}
+	if err := json.Unmarshal(data, &arr); err == nil {
+		var sb strings.Builder
+		for _, item := range arr {
+			if item.Type == "text" {
+				sb.WriteString(item.Text)
+			}
+		}
+		*f = flexibleString(sb.String())
+		return nil
+	}
+
+	return fmt.Errorf("formato de content desconocido: %s", string(data))
+}
+
 type mistralResponse struct {
 	ID      string `json:"id"`
 	Object  string `json:"object"`
@@ -42,7 +76,7 @@ type mistralResponse struct {
 		Index   int `json:"index"`
 		Message struct {
 			Role      string               `json:"role"`
-			Content   string               `json:"content"`
+			Content   flexibleString       `json:"content"` // <-- CAMBIO CLAVE ACÁ
 			ToolCalls []providers.ToolCall `json:"tool_calls,omitempty"`
 		} `json:"message"`
 		FinishReason string `json:"finish_reason"`
@@ -54,19 +88,23 @@ type mistralResponse struct {
 	} `json:"usage"`
 }
 
-func NewClient() *Client {
+// NewClient construye un cliente Mistral con la API key del tenant (BYOK).
+// Si model viene vacío, usa defaultModel.
+func NewClient(apiKey, model string) *Client {
+	if model == "" {
+		model = defaultModel
+	}
+
 	return &Client{
-		apiKey: os.Getenv("MISTRAL_API_KEY"),
-		model:  "open-mistral-nemo",
+		apiKey: apiKey,
+		model:  model,
 		httpClient: &http.Client{
 			Timeout: 60 * time.Second,
 		},
 	}
 }
 
-func (c *Client) Name() string {
-	return "mistral"
-}
+func (c *Client) Name() string { return "mistral" }
 
 func (c *Client) Chat(ctx context.Context, messages []providers.Message, tools []providers.Tool) (*providers.LLMResponse, error) {
 	if c.apiKey == "" {
@@ -89,13 +127,11 @@ func (c *Client) Chat(ctx context.Context, messages []providers.Message, tools [
 		return nil, models.ErrInternal(fmt.Sprintf("marshal request: %v", err))
 	}
 
-	// Reintentos: solo para errores de red y 429
 	const maxRetries = 3
 	var lastErr error
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if attempt > 0 {
-			// Backoff: 1s, 2s
 			select {
 			case <-ctx.Done():
 				return nil, models.ErrTimeout()
@@ -103,7 +139,6 @@ func (c *Client) Chat(ctx context.Context, messages []providers.Message, tools [
 			}
 		}
 
-		// ⚠️ CRÍTICO: recrear el body en CADA intento
 		req, err := http.NewRequestWithContext(ctx, "POST", mistralAPIURL, bytes.NewReader(jsonBody))
 		if err != nil {
 			return nil, models.ErrInternal(fmt.Sprintf("new request: %v", err))
@@ -114,30 +149,22 @@ func (c *Client) Chat(ctx context.Context, messages []providers.Message, tools [
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
 			lastErr = err
-			if errors.Is(err, context.DeadlineExceeded) {
+			if errors.Is(err, context.DeadlineExceeded) || ctx.Err() != nil {
 				return nil, models.ErrTimeout()
 			}
-			if ctx.Err() != nil {
-				return nil, models.ErrTimeout()
-			}
-			continue // reintentar
+			continue
 		}
 
-		// 429 → reintentar
 		if resp.StatusCode == http.StatusTooManyRequests {
 			body, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
 			lastErr = fmt.Errorf("429: %s", string(body))
 			continue
 		}
-
-		// 401/403 → auth, sin reintento
 		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 			resp.Body.Close()
 			return nil, models.ErrAuth()
 		}
-
-		// Otros 4xx/5xx → upstream, sin reintento (excepto 5xx que podríamos reintentar)
 		if resp.StatusCode >= 500 {
 			body, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
@@ -149,26 +176,23 @@ func (c *Client) Chat(ctx context.Context, messages []providers.Message, tools [
 			return nil, models.ErrInvalidRequest(fmt.Sprintf("Mistral %d: %s", resp.StatusCode, truncate(string(body), 200)))
 		}
 
-		// 2xx → decodificar
 		defer resp.Body.Close()
-		var mistralResp mistralResponse
-		if err := json.NewDecoder(resp.Body).Decode(&mistralResp); err != nil {
+		var mr mistralResponse
+		if err := json.NewDecoder(resp.Body).Decode(&mr); err != nil {
 			return nil, models.ErrUpstream(fmt.Sprintf("decode response: %v", err))
 		}
-		if len(mistralResp.Choices) == 0 {
+		if len(mr.Choices) == 0 {
 			return nil, models.ErrUpstream("Mistral devolvió 0 choices")
 		}
 
-		choice := mistralResp.Choices[0]
+		// Convertimos el flexibleString de vuelta a string normal
 		return &providers.LLMResponse{
-			Content:   choice.Message.Content,
-			ToolCalls: choice.Message.ToolCalls,
+			Content:   string(mr.Choices[0].Message.Content),
+			ToolCalls: mr.Choices[0].Message.ToolCalls,
 		}, nil
 	}
 
-	// Agotó reintentos
 	if lastErr != nil {
-		// Heurística: si el último error fue 429, es rate limit
 		if s := lastErr.Error(); len(s) > 3 && s[:3] == "429" {
 			return nil, models.ErrRateLimit()
 		}
