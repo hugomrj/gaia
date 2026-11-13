@@ -97,13 +97,14 @@
     <a href="#overview">Overview</a>
     <a href="#philosophy">Filosofía</a>
     <a href="#architecture">Arquitectura</a>
+    <a href="#auth">Autenticación (BYOK)</a>
   </nav>
   <nav class="nav-group">
     <h4>Endpoints</h4>
     <a href="#health">GET /health</a>
-    <a href="#analyze">POST /v1/analyze</a>
-    <a href="#normalize">POST /v1/normalize</a>
-    <a href="#synthesize">POST /v1/synthesize</a>
+    <a href="#analyze">POST /v1/:tenant/analyze</a>
+    <a href="#normalize">POST /v1/:tenant/normalize</a>
+    <a href="#synthesize">POST /v1/:tenant/synthesize</a>
   </nav>
   <nav class="nav-group">
     <h4>Guías</h4>
@@ -148,6 +149,7 @@
     <li>✓ GAIA <strong>no conoce</strong> las funciones del cliente.</li>
     <li>✓ GAIA <strong>no ejecuta</strong> código ni toca bases de datos.</li>
     <li>✓ El cliente es el <strong>agente</strong>: orquesta, ejecuta y mantiene el historial.</li>
+    <li>✓ <strong>BYOK (Bring Your Own Key)</strong>: cada tenant usa sus propias API Keys del LLM.</li>
   </ul>
   <div class="callout">
     <strong>Implicancia clave:</strong> el cliente maneja el historial y el estado
@@ -159,10 +161,10 @@
 <section id="architecture">
   <h2>Arquitectura</h2>
   <div class="diagram">
-Usuario → Cliente → POST /v1/analyze   → Planner      (¿qué quiere?)
-                  → POST /v1/normalize → Normalizer   (opcional)
+Usuario → Cliente → POST /v1/:tenant/analyze   → Planner      (¿qué quiere?)
+                  → POST /v1/:tenant/normalize → Normalizer   (opcional)
                   → (cliente ejecuta la función real)
-                  → POST /v1/synthesize→ Synthesizer  (¿cómo lo digo?)
+                  → POST /v1/:tenant/synthesize→ Synthesizer  (¿cómo lo digo?)
                   → Usuario</div>
 
   <h3>Componentes</h3>
@@ -189,6 +191,42 @@ Usuario → Cliente → POST /v1/analyze   → Planner      (¿qué quiere?)
   </table>
 </section>
 
+<!-- ==================== AUTH ==================== -->
+<section id="auth">
+  <h2>Autenticación y Enrutamiento (BYOK)</h2>
+  <p>
+    Todas las llamadas a los endpoints <code>/v1/:tenant/...</code> requieren autenticación.
+    El <strong>tenant</strong> (el cliente) se identifica en el path de la URL, y se valida
+    con el token en el header <code>Authorization</code>.
+  </p>
+  
+  <h3>Headers de Configuración</h3>
+  <table>
+    <tr><th>Header</th><th>Obligatorio</th><th>Descripción</th></tr>
+    <tr>
+      <td><code>Authorization</code></td>
+      <td><span class="badge required">requerido</span></td>
+      <td>Token del tenant: <code>Bearer gaia_sk_...</code>. Se genera desde el panel de administración.</td>
+    </tr>
+    <tr>
+      <td><code>X-Provider</code></td>
+      <td><span class="badge optional">condicional</span></td>
+      <td>Nombre del LLM (ej: <code>mistral</code>). Obligatorio <strong>solo si</strong> el tenant tiene 2 o más proveedores con keys activas. Si tiene uno solo, se asume ese.</td>
+    </tr>
+    <tr>
+      <td><code>X-Model</code></td>
+      <td><span class="badge optional">opcional</span></td>
+      <td>Modelo específico a usar (ej: <code>mistral-large-latest</code>). Si no se envía, se usa el default del proveedor (para Mistral es <code>open-mistral-nemo</code>).</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <strong>BYOK (Bring Your Own Key):</strong> GAIA no usa variables de entorno globales.
+    Las API keys del LLM se cargan desde el panel de administración y se asocian a cada tenant.
+    GAIA las elige al azar entre las activas para balancear la carga y evita límites de cuota.
+  </div>
+</section>
+
 <!-- ==================== HEALTH ==================== -->
 <section id="health">
   <h2>Health check</h2>
@@ -197,7 +235,7 @@ Usuario → Cliente → POST /v1/analyze   → Planner      (¿qué quiere?)
       <span class="method get">GET</span>
       <span class="path">/health</span>
     </div>
-    <p style="margin:0;">Verifica que el servidor está vivo.</p>
+    <p style="margin:0;">Verifica que el servidor está vivo. No requiere autenticación.</p>
   </div>
   <h4>Respuesta</h4>
   <pre><code>{
@@ -209,12 +247,17 @@ Usuario → Cliente → POST /v1/analyze   → Planner      (¿qué quiere?)
 
 <!-- ==================== ANALYZE ==================== -->
 <section id="analyze">
-  <h2>POST /v1/analyze</h2>
+  <h2>POST /v1/:tenant/analyze</h2>
   <p>
     Analiza el mensaje del usuario y devuelve la intención, el nombre de la
     función y los parámetros extraídos. El Planner <strong>no normaliza</strong>
     valores: los extrae crudos tal como el usuario los escribió.
   </p>
+
+  <h4>Headers</h4>
+  <pre><code>Authorization: Bearer gaia_sk_...
+X-Provider: mistral (opcional/condicional)
+X-Model: mistral-large-latest (opcional)</code></pre>
 
   <h4>Request body</h4>
   <table>
@@ -232,24 +275,24 @@ Usuario → Cliente → POST /v1/analyze   → Planner      (¿qué quiere?)
     <tr>
       <td><code>function_name</code></td><td>string</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Función pendiente del turno anterior (slot filling). Si está seteada,
-      el Planner se enfoca en llenar los <code>data_slots</code> nulos.</td>
+      <td>Función pendiente del turno anterior (slot filling).</td>
     </tr>
     <tr>
       <td><code>data_slots</code></td><td>object</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Slots acumulados. Un valor <code>null</code> indica "falta este dato".
-      El Planner intenta llenarlo con el mensaje actual.</td>
+      <td>Slots acumulados. Un valor <code>null</code> indica "falta este dato".</td>
     </tr>
     <tr>
       <td><code>history</code></td><td>array</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Últimos turnos (máx. 6 entradas) para dar contexto. Ver <a href="#history">Manejo del historial</a>.</td>
+      <td>Últimos turnos (máx. 6 entradas) para dar contexto.</td>
     </tr>
   </table>
 
   <h4>Ejemplo de request</h4>
-  <pre><code>POST /v1/analyze
+  <pre><code>POST /v1/demo/analyze
+Authorization: Bearer gaia_sk_108a2...
+X-Provider: mistral
 Content-Type: application/json
 
 {
@@ -258,38 +301,20 @@ Content-Type: application/json
   "history": []
 }</code></pre>
 
-  <h4>Ejemplo con slot filling</h4>
-  <pre><code>POST /v1/analyze
-Content-Type: application/json
-
-{
-  "message": "el lunes",
-  "function_name": "agendar_reunion",
-  "data_slots": {
-    "doctor": "ramirez",
-    "fecha": null
-  },
-  "history": [...]
-}</code></pre>
-
   <h4>Response</h4>
   <table>
     <tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr>
     <tr>
       <td><code>intent</code></td><td>string</td>
-      <td>Frase completa en castellano que resume qué quiere el usuario.
-      Ej: <code>"El usuario quiere saber cuánto se facturó hoy"</code>.</td>
+      <td>Frase completa en castellano que resume qué quiere el usuario.</td>
     </tr>
     <tr>
       <td><code>is_conversational</code></td><td>boolean</td>
-      <td><code>true</code> si es charla casual (saludo, agradecimiento,
-      despedida, info del bot, mi perfil). <code>false</code> si es acción.</td>
+      <td><code>true</code> si es charla casual.</td>
     </tr>
     <tr>
       <td><code>function_name</code></td><td>string</td>
-      <td>Función sugerida en <strong>castellano snake_case</strong>
-      (<code>verbo_sustantivo[_sufijo]</code>). Ej: <code>obtener_facturacion_diaria</code>.
-      String vacío si el usuario solo mencionó un tema sin acción.</td>
+      <td>Función sugerida en castellano snake_case.</td>
     </tr>
     <tr>
       <td><code>parameters</code></td><td>object</td>
@@ -314,28 +339,14 @@ Content-Type: application/json
   "confidence": 0.95,
   "original_input": "cuanto facture hoy"
 }</code></pre>
-
-  <div class="callout warn">
-    <strong>Atención:</strong> <code>function_name</code> puede ser un nombre
-    inventado por el LLM que no exista en tu catálogo. Es responsabilidad del
-    cliente verificar contra su catálogo antes de ejecutar. Si no existe,
-    devolvé <code>error_code: "function_not_found"</code> al Synthesizer.
-  </div>
-
-  <div class="callout">
-    <strong>Topic sin acción:</strong> si el usuario dice solo
-    <code>"facturacion"</code> (sin verbo), el Planner devuelve
-    <code>function_name: ""</code> y <code>parameters: {"tema": "facturacion"}</code>
-    con <code>confidence: 0.5</code>. Ese es el caso "topic".
-  </div>
 </section>
 
 <!-- ==================== NORMALIZE ==================== -->
 <section id="normalize">
-  <h2>POST /v1/normalize</h2>
+  <h2>POST /v1/:tenant/normalize</h2>
   <p>
-    Convierte valores crudos a formato estándar. Es <strong>opcional</strong>:
-    el cliente decide cuándo llamarlo. <strong>No usa LLM</strong>: es determinístico.
+    Convierte valores crudos a formato estándar. Es <strong>opcional</strong>.
+    No usa LLM ni requiere API keys, pero sí requiere autenticación del tenant en el path.
   </p>
 
   <h4>Qué normaliza (real)</h4>
@@ -343,94 +354,25 @@ Content-Type: application/json
     <tr><th>Tipo</th><th>Entrada</th><th>Salida</th></tr>
     <tr>
       <td>Fecha relativa</td>
-      <td><code>"hoy"</code>, <code>"ayer"</code>, <code>"mañana"</code>,
-      <code>"pasado mañana"</code>, <code>"anteayer"</code></td>
+      <td><code>"hoy"</code>, <code>"ayer"</code>, <code>"mañana"</code></td>
       <td><code>"2026-11-10"</code> (string ISO)</td>
     </tr>
     <tr>
       <td>Día de semana</td>
-      <td><code>"el lunes"</code>, <code>"lunes"</code>, <code>"el miércoles"</code></td>
+      <td><code>"el lunes"</code>, <code>"lunes"</code></td>
       <td><code>"2026-11-16"</code> (próximo día)</td>
     </tr>
     <tr>
-      <td>Desplazamiento</td>
-      <td><code>"hace 3 días"</code>, <code>"hace 2 semanas"</code>,
-      <code>"hace 1 mes"</code>, <code>"hace 5 años"</code></td>
-      <td><code>"2026-11-07"</code> (string ISO)</td>
-    </tr>
-    <tr>
-      <td>Fecha ISO</td>
-      <td><code>"2026-11-10"</code></td>
-      <td>Se devuelve tal cual</td>
-    </tr>
-    <tr>
-      <td>Fecha con barras</td>
-      <td><code>"10/11/2026"</code> o <code>"10/11/26"</code></td>
-      <td><code>"2026-11-10"</code></td>
-    </tr>
-    <tr>
-      <td>Día + mes</td>
-      <td><code>"10 de noviembre"</code> o <code>"10 de noviembre de 2026"</code></td>
-      <td><code>"2026-11-10"</code></td>
-    </tr>
-    <tr>
-      <td>Año</td>
-      <td><code>"2026"</code></td>
-      <td><code>{"from": "2026-01-01", "to": "2026-12-31"}</code></td>
-    </tr>
-    <tr>
-      <td>Mes</td>
-      <td><code>"noviembre"</code> o <code>"noviembre de 2026"</code></td>
-      <td><code>{"from": "2026-11-01", "to": "2026-11-30"}</code></td>
-    </tr>
-    <tr>
-      <td>Períodos</td>
-      <td><code>"este mes"</code>, <code>"el mes pasado"</code>,
-      <code>"esta semana"</code>, <code>"el año pasado"</code>,
-      <code>"la semana que viene"</code>, etc.</td>
-      <td><code>{"from": "...", "to": "..."}</code></td>
-    </tr>
-    <tr>
       <td>Número con multiplicador</td>
-      <td><code>"150 mil"</code>, <code>"1.5M"</code>, <code>"2 B"</code>,
-      <code>"1.5 mil millones"</code></td>
+      <td><code>"150 mil"</code>, <code>"1.5M"</code>, <code>"2 B"</code></td>
       <td><code>150000</code>, <code>1500000</code>, <code>2000000000</code></td>
     </tr>
     <tr>
-      <td>Número con separadores</td>
-      <td><code>"1.500"</code>, <code>"1,500"</code>, <code>"1500,50"</code>,
-      <code>"1.500,50"</code>, <code>"1,500.50"</code></td>
-      <td><code>1500</code>, <code>1500</code>, <code>1500.5</code>,
-      <code>1500.5</code>, <code>1500.5</code></td>
-    </tr>
-    <tr>
-      <td>Moneda</td>
-      <td><code>"150000 Gs."</code>, <code>"$1500"</code>, <code>"USD 100"</code>,
-      <code>"€50"</code>, <code>"₲150000"</code></td>
-      <td>Número sin el símbolo: <code>150000</code>, <code>1500</code>, <code>100</code></td>
-    </tr>
-    <tr>
       <td>Booleano</td>
-      <td><code>"sí"</code>, <code>"si"</code>, <code>"no"</code>,
-      <code>"true"</code>, <code>"false"</code>, <code>"1"</code>,
-      <code>"0"</code>, <code>"ok"</code></td>
+      <td><code>"sí"</code>, <code>"si"</code>, <code>"no"</code>, <code>"true"</code></td>
       <td><code>true</code> / <code>false</code></td>
     </tr>
-    <tr>
-      <td>Cédula numérica</td>
-      <td><code>1234567</code></td>
-      <td><code>"1234567"</code> (string, sin notación científica)</td>
-    </tr>
   </table>
-
-  <div class="callout warn">
-    <strong>Importante:</strong> el Normalizer solo intenta interpretar un valor
-    si <strong>el nombre del campo lo sugiere</strong> o si el valor parece del
-    tipo. Por ejemplo, un campo con nombre <code>is_active</code>,
-    <code>has_stock</code>, <code>activo</code>, etc. se interpreta como booleano.
-    Campos como <code>amount</code>, <code>monto</code>, <code>cantidad</code> se
-    interpretan como número. Ver <a href="#models">Modelos de datos</a>.
-  </div>
 
   <h4>Request body</h4>
   <table>
@@ -443,7 +385,8 @@ Content-Type: application/json
   </table>
 
   <h4>Ejemplo de request</h4>
-  <pre><code>POST /v1/normalize
+  <pre><code>POST /v1/demo/normalize
+Authorization: Bearer gaia_sk_108a2...
 Content-Type: application/json
 
 {
@@ -464,35 +407,32 @@ Content-Type: application/json
   "normalized": ["fecha", "monto", "is_active"],
   "not_normalized": []
 }</code></pre>
-
-  <div class="callout">
-    Los valores que no se pueden normalizar se devuelven <strong>tal cual</strong>
-    y aparecen en <code>not_normalized</code>. Los arrays contienen <strong>nombres
-    de campos</strong> (no los valores).
-  </div>
 </section>
 
 <!-- ==================== SYNTHESIZE ==================== -->
 <section id="synthesize">
-  <h2>POST /v1/synthesize</h2>
+  <h2>POST /v1/:tenant/synthesize</h2>
   <p>
     Redacta la respuesta final al usuario. Decide el modo automáticamente
     según los datos que recibe.
   </p>
+
+  <h4>Headers</h4>
+  <pre><code>Authorization: Bearer gaia_sk_...
+X-Provider: mistral (opcional/condicional)
+X-Model: mistral-large-latest (opcional)</code></pre>
 
   <h4>Modos automáticos (lógica real)</h4>
   <table>
     <tr><th>Modo</th><th>Condición</th><th>Ejemplo de respuesta</th></tr>
     <tr>
       <td><code>conversation</code></td>
-      <td><code>is_conversational: true</code> <em>o</em> (sin raw_data,
-      sin slots nulos, confidence ≥ 0.7)</td>
+      <td><code>is_conversational: true</code> <em>o</em> (sin raw_data, sin slots nulos, confidence ≥ 0.7)</td>
       <td>"¡Hola! ¿En qué te ayudo?"</td>
     </tr>
     <tr>
       <td><code>clarify</code></td>
-      <td>Sin raw_data y (hay <code>data_slots</code> con valor <code>null</code>
-      <em>o</em> confidence &lt; 0.7)</td>
+      <td>Sin raw_data y (hay <code>data_slots</code> con valor <code>null</code> <em>o</em> confidence &lt; 0.7)</td>
       <td>"¿Para qué fecha querés la cita?"</td>
     </tr>
     <tr>
@@ -507,13 +447,6 @@ Content-Type: application/json
     </tr>
   </table>
 
-  <h4>Bypasses determinísticos (sin LLM)</h4>
-  <p>Estos casos devuelven respuesta hardcodeada, no llaman al LLM:</p>
-  <ul>
-    <li><code>function_name == "obtener_fuera_alcance"</code> → respuesta fija indicando el alcance.</li>
-    <li><code>error_code == "function_not_found"</code> → respuesta fija indicando que no se puede asistir.</li>
-  </ul>
-
   <h4>Request body</h4>
   <table>
     <tr><th>Campo</th><th>Tipo</th><th>Obligatorio</th><th>Descripción</th></tr>
@@ -525,7 +458,7 @@ Content-Type: application/json
     <tr>
       <td><code>intent</code></td><td>string</td>
       <td><span class="badge required">requerido</span></td>
-      <td>Intención que devolvió el Planner (frase completa en castellano).</td>
+      <td>Intención que devolvió el Planner.</td>
     </tr>
     <tr>
       <td><code>function_name</code></td><td>string</td>
@@ -545,31 +478,22 @@ Content-Type: application/json
     <tr>
       <td><code>data_slots</code></td><td>object</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Slots del turno. Un valor <code>null</code> indica que falta y dispara
-      modo <code>clarify</code> (si no hay raw_data).</td>
+      <td>Slots del turno. Un valor <code>null</code> dispara modo <code>clarify</code>.</td>
     </tr>
     <tr>
       <td><code>raw_data</code></td><td>string</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Datos crudos del ERP tras ejecutar. Si está → modo <code>respond</code>.
-      Idealmente en formato envelope (ver <a href="#envelope">Envelope</a>).</td>
+      <td>Datos crudos del ERP. Si está → modo <code>respond</code>.</td>
     </tr>
     <tr>
       <td><code>error_code</code></td><td>string</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Forzar modo <code>error</code>. Valores: <code>function_not_found</code>,
-      <code>execution_failed</code>, <code>timeout</code>, <code>invalid_parameters</code>.</td>
+      <td>Forzar modo <code>error</code> (<code>function_not_found</code>, <code>timeout</code>, etc).</td>
     </tr>
     <tr>
       <td><code>confidence</code></td><td>number</td>
       <td><span class="badge optional">opcional</span></td>
-      <td>Confianza del Planner. Si es &lt; 0.7 y no hay raw_data, dispara
-      modo <code>clarify</code>.</td>
-    </tr>
-    <tr>
-      <td><code>history</code></td><td>array</td>
-      <td><span class="badge optional">opcional</span></td>
-      <td>Últimos turnos para dar contexto.</td>
+      <td>Confianza del Planner. &lt; 0.7 dispara <code>clarify</code>.</td>
     </tr>
   </table>
 
@@ -582,90 +506,13 @@ Content-Type: application/json
     </tr>
     <tr>
       <td><code>history_entry</code></td><td>object</td>
-      <td>Entrada lista para agregar al historial del cliente (con timestamp).</td>
+      <td>Entrada lista para agregar al historial del cliente.</td>
     </tr>
     <tr>
       <td><code>mode</code></td><td>string</td>
-      <td>Modo usado: <code>conversation</code>, <code>clarify</code>,
-      <code>respond</code>, <code>error</code>.</td>
-    </tr>
-    <tr>
-      <td><code>data_slots</code></td><td>object</td>
-      <td>Eco de los slots del request (útil para el cliente).</td>
-    </tr>
-    <tr>
-      <td><code>raw_data</code></td><td>string</td>
-      <td>Eco del raw_data del request.</td>
+      <td><code>conversation</code>, <code>clarify</code>, <code>respond</code> o <code>error</code>.</td>
     </tr>
   </table>
-
-  <h4>Ejemplo modo <code>respond</code></h4>
-  <pre><code>// Request
-{
-  "original_message": "cuanto facture hoy",
-  "intent": "El usuario quiere saber cuánto se facturó hoy",
-  "function_name": "obtener_facturacion_diaria",
-  "parameters": {"fecha": "2026-11-10"},
-  "confidence": 0.95,
-  "raw_data": "{\"type\":\"currency\",\"label\":\"Facturación de hoy\",\"data\":126825000,\"meta\":{\"unit\":\"Gs\"}}",
-  "history": []
-}
-
-// Response
-{
-  "response": "Hoy facturaste Gs 126.825.000.",
-  "history_entry": {
-    "role": "assistant",
-    "summary": "obtener_facturacion_diaria(fecha=2026-11-10)",
-    "timestamp": "2026-11-10T14:32:00-03:00"
-  },
-  "mode": "respond",
-  "raw_data": "..."
-}</code></pre>
-
-  <h4>Ejemplo modo <code>clarify</code></h4>
-  <pre><code>// Request
-{
-  "original_message": "quiero una cita",
-  "intent": "El usuario quiere agendar una reunión",
-  "function_name": "agendar_reunion",
-  "data_slots": {"doctor": null, "fecha": null},
-  "confidence": 0.6,
-  "history": []
-}
-
-// Response
-{
-  "response": "¿Con qué doctor y para qué fecha querés la reunión?",
-  "history_entry": {
-    "role": "assistant",
-    "summary": "pedí doctor, fecha en agendar_reunion()",
-    "timestamp": "2026-11-10T14:32:00-03:00"
-  },
-  "mode": "clarify"
-}</code></pre>
-
-  <h4>Ejemplo modo <code>error</code></h4>
-  <pre><code>// Request
-{
-  "original_message": "quiero una cita",
-  "intent": "El usuario quiere agendar una reunión",
-  "function_name": "agendar_reunion",
-  "raw_data": "ERROR: timeout conectando al ERP",
-  "error_code": "execution_failed",
-  "history": []
-}
-
-// Response
-{
-  "response": "No pude completar la operación en este momento. ¿Podés intentar de nuevo en unos minutos?",
-  "history_entry": {
-    "role": "assistant",
-    "summary": "error execution_failed en agendar_reunion",
-    "timestamp": "2026-11-10T14:32:30-03:00"
-  },
-  "mode": "error"
-}</code></pre>
 </section>
 
 <!-- ==================== ENVELOPE ==================== -->
@@ -674,42 +521,14 @@ Content-Type: application/json
   <p>
     El campo <code>raw_data</code> acepta cualquier string. Si le pasás un
     <strong>envelope</strong> JSON, el Synthesizer extrae la información de forma
-    estructurada y la usa para redactar mejor la respuesta. Si no es envelope,
-    se pasa el raw tal cual al LLM.
+    estructurada y la usa para redactar mejor la respuesta.
   </p>
-
-  <h4>Formato del envelope</h4>
   <pre><code>{
-  "type":  "currency" | "number" | "text" | "list" | "...",
+  "type":  "currency",
   "label": "Facturación de hoy",
   "data":  126825000,
-  "meta":  {"unit": "Gs", "extra": "..."}
+  "meta":  {"unit": "Gs"}
 }</code></pre>
-
-  <table>
-    <tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr>
-    <tr>
-      <td><code>type</code></td><td>string</td>
-      <td>Tipo semántico. El Synthesizer lo usa para el prompt.</td>
-    </tr>
-    <tr>
-      <td><code>label</code></td><td>string</td>
-      <td>Descripción legible. Se incluye en el prompt como "descripción".</td>
-    </tr>
-    <tr>
-      <td><code>data</code></td><td>any</td>
-      <td>El valor. Puede ser número, string, array, objeto.</td>
-    </tr>
-    <tr>
-      <td><code>meta</code></td><td>object</td>
-      <td>Metadata opcional (unidad, formato, etc.).</td>
-    </tr>
-  </table>
-
-  <div class="callout">
-    <strong>Recomendación:</strong> usar siempre envelope. Mejora la calidad
-    de la respuesta y evita alucinaciones sobre qué representa el número.
-  </div>
 </section>
 
 <!-- ==================== FLUJO ==================== -->
@@ -718,40 +537,18 @@ Content-Type: application/json
   <div class="diagram">
 1. Usuario escribe un mensaje
 
-2. Cliente → POST /v1/analyze
+2. Cliente → POST /v1/:tenant/analyze
    → {intent, is_conversational, function_name, parameters, confidence}
 
 3. Cliente:
    a. Verifica si function_name existe en su catálogo
-   b. Calcula data_slots faltantes (los que el Planner marcó como null)
-   c. Si faltan → llama a /v1/synthesize con data_slots null (modo clarify)
-   d. Si no faltan → ejecuta la función → obtiene raw_data
+   b. Si faltan datos → POST /v1/:tenant/synthesize (modo clarify)
+   c. Si no faltan → ejecuta la función real → obtiene raw_data
 
-4. Cliente → (opcional) POST /v1/normalize
-   → limpia parámetros crudos antes de ejecutar la función
+4. Cliente → (opcional) POST /v1/:tenant/normalize
 
-5. Cliente → POST /v1/synthesize (con raw_data o error_code)
-   → {response, history_entry, mode}
-
-6. Cliente:
-   a. Muestra response al usuario
-   b. Agrega history_entry al historial local
-   c. Recorta el historial a 6 entradas
-   d. Si mode es respond/error/conversation → limpia data_slots</div>
-
-  <h3>Multi-turno (slot filling)</h3>
-  <div class="diagram">
-Turno 1:
-  Usuario: "quiero una cita"
-  Planner: {function_name: "agendar_reunion", data_slots: {doctor: null, fecha: null}}
-  Synthesizer: "¿Con qué doctor y para qué fecha?"
-
-Turno 2 (con slots del turno anterior):
-  Usuario: "el lunes con el doctor ramirez"
-  Planner: {function_name: "agendar_reunion",
-            parameters: {fecha: "el lunes", doctor: "ramirez"}}
-  Cliente: normaliza → ejecuta → obtiene raw_data
-  Synthesizer: "Tu cita quedó agendada para el lunes con el doctor Ramírez."</div>
+5. Cliente → POST /v1/:tenant/synthesize (con raw_data o error_code)
+   → {response, history_entry, mode}</div>
 </section>
 
 <!-- ==================== HISTORIAL ==================== -->
@@ -759,39 +556,14 @@ Turno 2 (con slots del turno anterior):
   <h2>Manejo del historial</h2>
   <p>
     El cliente es responsable de mantener el historial y enviarlo en cada
-    request. GAIA no lo persiste.
+    request. Máximo <strong>6 entradas</strong>.
   </p>
-
-  <h3>Reglas</h3>
-  <ul>
-    <li>Máximo <strong>6 entradas</strong> (3 turnos de user + assistant).</li>
-    <li>Se recorta <strong>al final del turno</strong>, después del <code>/v1/synthesize</code>.</li>
-    <li>El <code>content</code> del user es el mensaje textual.</li>
-    <li>El <code>summary</code> del assistant es un resumen corto (lo genera GAIA).</li>
-    <li>Siempre incluir <code>timestamp</code> en cada entrada.</li>
-  </ul>
-
-  <h3>Estructura</h3>
   <pre><code>{
   "history": [
-    {
-      "role": "user",
-      "content": "quiero una cita",
-      "timestamp": "2026-11-10T10:00:00Z"
-    },
-    {
-      "role": "assistant",
-      "summary": "pedí doctor, fecha en agendar_reunion()",
-      "timestamp": "2026-11-10T10:00:02Z"
-    }
+    {"role": "user", "content": "quiero una cita", "timestamp": "2026-11-10T10:00:00Z"},
+    {"role": "assistant", "summary": "pedí doctor, fecha", "timestamp": "2026-11-10T10:00:02Z"}
   ]
 }</code></pre>
-
-  <div class="callout warn">
-    <strong>Importante:</strong> el <code>summary</code> no es lo que ve el
-    usuario. Es un resumen para el LLM. El texto real que ve el usuario está
-    en <code>response</code> del <code>/v1/synthesize</code>.
-  </div>
 </section>
 
 <!-- ==================== ERRORES ==================== -->
@@ -801,218 +573,56 @@ Turno 2 (con slots del turno anterior):
   <h3>Códigos HTTP</h3>
   <table>
     <tr><th>Código</th><th>Significado</th></tr>
-    <tr><td><code>200</code></td><td>OK. Todo bien.</td></tr>
-    <tr><td><code>400</code></td><td>Request inválido. Falta un campo o tiene tipo incorrecto.</td></tr>
-    <tr><td><code>500</code></td><td>Error interno (LLM caído, error de parseo). Revisar logs.</td></tr>
+    <tr><td><code>200</code></td><td>OK.</td></tr>
+    <tr><td><code>400</code></td><td>Request inválido o error de configuración del tenant (ej: falta key).</td></tr>
+    <tr><td><code>401</code></td><td>Token inválido o no enviado en el header Authorization.</td></tr>
+    <tr><td><code>429</code></td><td>Rate limit alcanzado en Mistral (u otro proveedor).</td></tr>
+    <tr><td><code>502</code></td><td>Error de autenticación con el proveedor LLM (API key revocada).</td></tr>
+    <tr><td><code>503</code></td><td>Error de conexión con el proveedor LLM.</td></tr>
   </table>
 
-  <h3>Error codes en <code>/v1/synthesize</code></h3>
+  <h3>Errores de configuración (HTTP 400)</h3>
   <table>
-    <tr><th>error_code</th><th>Cuándo usar</th><th>Comportamiento</th></tr>
+    <tr><th>Mensaje</th><th>Causa</th></tr>
     <tr>
-      <td><code>function_not_found</code></td>
-      <td>El <code>function_name</code> que devolvió el Planner no existe en tu catálogo.</td>
-      <td>Respuesta hardcodeada (no llama al LLM).</td>
+      <td><code>el tenant no tiene ningún proveedor con API key activa configurada</code></td>
+      <td>No hay keys cargadas en el panel de administración.</td>
     </tr>
     <tr>
-      <td><code>execution_failed</code></td>
-      <td>La función existe pero falló al ejecutar.</td>
-      <td>Disculpa genérica generada por el LLM.</td>
+      <td><code>el tenant tiene múltiples proveedores activos; especificá el header X-Provider</code></td>
+      <td>Tenés 2+ providers vinculados con keys y no enviaste el header.</td>
     </tr>
     <tr>
-      <td><code>timeout</code></td>
-      <td>El ERP no respondió a tiempo.</td>
-      <td>Disculpa genérica + sugerencia de reintentar.</td>
+      <td><code>el proveedor "X" está vinculado al tenant pero no tiene API key activa</code></td>
+      <td>Pediste un `X-Provider` que existe, pero todas sus keys están apagadas.</td>
     </tr>
     <tr>
-      <td><code>invalid_parameters</code></td>
-      <td>Los parámetros no cumplen el formato esperado.</td>
-      <td>Disculpa genérica (default).</td>
+      <td><code>el tenant no tiene el proveedor "X" configurado</code></td>
+      <td>Mandaste un `X-Provider` que ni siquiera está vinculado a tu tenant.</td>
     </tr>
   </table>
-</section>
-
-<!-- ==================== MODELOS ==================== -->
-<section id="models">
-  <h2>Modelos de datos</h2>
-
-  <h3>HistoryEntry</h3>
-  <pre><code>{
-  "role": "user" | "assistant",
-  "content": "string (solo para user)",
-  "summary": "string (solo para assistant)",
-  "timestamp": "RFC3339"
-}</code></pre>
-
-  <h3>DataSlots</h3>
-  <p>
-    Mapa de parámetros pendientes. Un valor <code>null</code> indica "falta este
-    dato" y dispara modo <code>clarify</code>. Un valor presente indica "ya lo tengo".
-  </p>
-  <pre><code>{
-  "doctor": "ramirez",
-  "fecha": null
-}</code></pre>
-
-  <h3>Campos que disparan normalización</h3>
-  <p>El Normalizer mira el <strong>nombre del campo</strong> para decidir cómo interpretar el valor:</p>
-  <table>
-    <tr><th>Tipo</th><th>Campos que lo disparan</th></tr>
-    <tr>
-      <td>Fecha / período</td>
-      <td><code>date</code>, <code>fecha</code>, <code>period</code>, <code>periodo</code>,
-      <code>from</code>, <code>desde</code>, <code>to</code>, <code>hasta</code>,
-      <code>start</code>, <code>end</code>, <code>inicio</code>, <code>fin</code></td>
-    </tr>
-    <tr>
-      <td>Número</td>
-      <td><code>amount</code>, <code>monto</code>, <code>cantidad</code>,
-      <code>quantity</code>, <code>count</code>, <code>qty</code>,
-      <code>price</code>, <code>precio</code>, <code>saldo</code>,
-      <code>balance</code>, <code>cost</code>, <code>costo</code></td>
-    </tr>
-    <tr>
-      <td>Moneda</td>
-      <td><code>total</code>, <code>monto_total</code>, <code>importe</code>,
-      <code>subtotal</code></td>
-    </tr>
-    <tr>
-      <td>Booleano</td>
-      <td>prefijos: <code>is_*</code>, <code>has_*</code>, <code>tiene_*</code>,
-      <code>es_*</code>, <code>esta_*</code>, <code>está_*</code>.
-      exactos: <code>active</code>, <code>enabled</code>, <code>activo</code>,
-      <code>habilitado</code></td>
-    </tr>
-    <tr>
-      <td>Cédula / doc</td>
-      <td><code>cedula</code>, <code>documento</code>, <code>document</code>,
-      <code>ci</code>, <code>ruc</code>, <code>dni</code>,
-      <code>id_number</code></td>
-    </tr>
-  </table>
-</section>
-
-<!-- ==================== FUNCIONES ==================== -->
-<section id="functions">
-  <h2>Vocabulario de funciones (Planner)</h2>
-  <p>
-    El Planner emite <code>function_name</code> usando un vocabulario cerrado
-    en castellano. Formato: <code>verbo_sustantivo[_sufijo]</code> (máx. 3 partes).
-  </p>
-
-  <h3>Verbos permitidos</h3>
-  <p>
-    <code>obtener_</code>, <code>listar_</code>, <code>buscar_</code>,
-    <code>verificar_</code>, <code>crear_</code>, <code>actualizar_</code>,
-    <code>eliminar_</code>, <code>calcular_</code>, <code>comparar_</code>,
-    <code>generar_</code>, <code>enviar_</code>, <code>agendar_</code>
-  </p>
-
-  <h3>Sustantivos permitidos</h3>
-  <p>
-    <code>facturacion</code>, <code>clientes</code>, <code>productos</code>,
-    <code>vendedores</code>, <code>categorias</code>, <code>ciudad</code>,
-    <code>saldos</code>, <code>caja</code>, <code>posicion</code>,
-    <code>cuentas</code>, <code>margen</code>, <code>kpis</code>,
-    <code>proveedores</code>, <code>empleados</code>, <code>departamentos</code>,
-    <code>inventario</code>, <code>stock</code>, <code>ordenes</code>,
-    <code>reuniones</code>, <code>resultados</code>, <code>tareas</code>,
-    <code>temas</code>, <code>analisis</code>, <code>informes</code>,
-    <code>reportes</code>
-  </p>
-
-  <h3>Claves de parámetros permitidas</h3>
-  <p>
-    <code>fecha</code>, <code>periodo</code>, <code>meses</code>,
-    <code>cliente</code>, <code>ciudad</code>, <code>producto</code>,
-    <code>vendedor</code>, <code>monto</code>, <code>cantidad</code>,
-    <code>proveedor</code>, <code>estado</code>, <code>limite</code>,
-    <code>sucursal</code>, <code>tema</code>
-  </p>
-
-  <h3>Funciones especiales</h3>
-  <table>
-    <tr><th>Nombre</th><th>Cuándo aparece</th></tr>
-    <tr>
-      <td><code>obtener_saludo</code>, <code>obtener_agradecimiento</code>,
-      <code>obtener_despedida</code>, <code>obtener_info_bot</code>,
-      <code>obtener_mi_perfil</code></td>
-      <td>Cuando <code>is_conversational: true</code>.</td>
-    </tr>
-    <tr>
-      <td><code>obtener_desconocido</code></td>
-      <td>Mensaje ambiguo sin contexto claro.</td>
-    </tr>
-    <tr>
-      <td><code>obtener_fuera_alcance</code></td>
-      <td>Pregunta fuera del dominio del sistema.</td>
-    </tr>
-    <tr>
-      <td>"" (string vacío)</td>
-      <td>Topic sin acción: usuario mencionó un sustantivo pero sin pedir nada
-      (ej: <code>"facturacion"</code>). Viene con <code>parameters: {"tema": "..."}</code>.</td>
-    </tr>
-  </table>
-
-  <div class="callout">
-    <strong>Nota:</strong> el vocabulario es la fuente de verdad del contrato.
-    Si tu sistema usa otros nombres, mapealos: la documentación de tu cliente
-    puede usar <code>get_daily_billing</code> y mapear internamente a
-    <code>obtener_facturacion_diaria</code>.
-  </div>
 </section>
 
 <!-- ==================== BEST PRACTICES ==================== -->
 <section id="best-practices">
   <h2>Buenas prácticas</h2>
 
-  <h3>1. Validar siempre contra tu catálogo</h3>
+  <h3>1. Manejar headers dinámicos</h3>
   <p>
-    El Planner puede inventar <code>function_name</code> que no existen.
-    <strong>Siempre</strong> verificá contra tu lista antes de ejecutar. Si no
-    existe, mandá <code>error_code: "function_not_found"</code> al Synthesizer.
+    Si tu sistema permite a los usuarios cambiar de modelo, solo agregá el header <code>X-Model</code>.
+    Si no, dejá que GAIA use el default (<code>open-mistral-nemo</code>) que es el más económico.
   </p>
 
-  <h3>2. Usar data_slots para slot filling</h3>
+  <h3>2. Validar contra el catálogo</h3>
   <p>
-    Si tu función requiere datos que el usuario no dio en un mensaje, guardá
-    <code>function_name</code> y <code>data_slots</code> con los faltantes en
-    <code>null</code>. En el siguiente turno, mandalos en el request de
-    <code>/v1/analyze</code> — el Planner se enfocará en llenarlos.
+    El Planner puede inventar un <code>function_name</code>. Validalo y respondé con
+    <code>error_code: "function_not_found"</code> al Synthesizer.
   </p>
 
   <h3>3. Usar envelope en raw_data</h3>
   <p>
-    Envolvé la respuesta de tu función en
-    <code>{"type", "label", "data", "meta"}</code>. Mejora la calidad de la
-    respuesta final y reduce alucinaciones numéricas.
-  </p>
-
-  <h3>4. Recortar el historial</h3>
-  <p>
-    Máximo 6 entradas. Si no recortás, el prompt al LLM crece sin control y
-    sube el costo por request.
-  </p>
-
-  <h3>5. Manejar errores del ERP</h3>
-  <p>
-    Si la ejecución falla (timeout, excepción), mandá
-    <code>error_code</code> al Synthesizer. Así GAIA responde con una
-    disculpa amable en vez de dejar al usuario sin respuesta.
-  </p>
-
-  <h3>6. No normalizar dos veces</h3>
-  <p>
-    Si llamás a <code>/v1/normalize</code>, usá los parámetros normalizados
-    para ejecutar la función Y para el Synthesizer. No normalices por un lado
-    y ejecutes por el otro.
-  </p>
-
-  <h3>7. Limpiar data_slots al cerrar turno</h3>
-  <p>
-    Cuando el modo del Synthesizer es <code>respond</code>, <code>error</code>
-    o <code>conversation</code>, el turno está cerrado. Reseteá
-    <code>data_slots</code> a <code>null</code> (o vacío) en el próximo request.
+    Envolvé la respuesta de tu función en <code>{"type", "label", "data", "meta"}</code>
+    para evitar que el LLM alucine números.
   </p>
 </section>
 

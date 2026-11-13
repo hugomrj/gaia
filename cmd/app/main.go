@@ -27,6 +27,7 @@ func main() {
 		log.Printf("⚠️  ADVERTENCIA: hash bcrypt debe tener 60 chars, tiene %d", len(adminPasswordHash))
 	}
 
+	// Puerto configurable (default 8080)
 	port := os.Getenv("GAIA_PORT")
 	if port == "" {
 		port = "8080"
@@ -43,7 +44,7 @@ func main() {
 	}
 	defer database.Close()
 
-	// 2. Store (carga tenants + providers + keys en memoria)
+	// 2. Store (carga tenants en memoria)
 	encryptKeys := os.Getenv("ENCRYPT_KEYS") == "true"
 	store, err := tenant.NewStore(database, encryptKeys)
 	if err != nil {
@@ -51,7 +52,7 @@ func main() {
 	}
 	log.Printf("GAIA cargó %d tenant(s) en memoria", len(store.List()))
 
-	// 3. Router (crea el Brain internamente, sin llave global)
+	// 3. Router (El cerebro se inicializa adentro)
 	appRouter := router.Setup(adminUser, adminPasswordHash, store)
 
 	log.Printf("GAIA iniciando en http://localhost:%s", port)

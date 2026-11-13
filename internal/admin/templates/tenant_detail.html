@@ -6,22 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>API de {{ .tenant.Name }} · GAIA</title>
 <link rel="stylesheet" href="/admin/static/css/style.css">
-<style>
-  .code-block {
-    background: var(--tinta);
-    color: #00E5A0;
-    padding: 20px;
-    font-family: ui-monospace, 'Courier New', monospace;
-    font-size: 13px;
-    border-radius: var(--radius-sm);
-    overflow-x: auto;
-    white-space: pre;
-    line-height: 1.6;
-    margin-top: 12px;
-  }
-  .code-block .comment { color: #737373; }
-  .code-block .string { color: #FBBF24; }
-</style>
+
 </head>
 <body>
 
@@ -73,6 +58,10 @@
             <label>Ruta (Endpoint)</label>
             <code class="slug-code" style="display: block; padding: 8px; font-size: 12px;">/v1/{{ .tenant.Slug }}/analyze</code>
           </div>
+
+          <div style="margin-top: 16px; padding: 12px; background: #FFFBEB; border: 1px solid #B45309; color: #92400E; font-size: 13px; border-radius: var(--radius-sm);">
+            <strong>🔑 BYOK:</strong> Recordá cargar tu API Key (Mistral, OpenAI, etc.) en el panel de administración para que las peticiones funcionen.
+          </div>
         </div>
 
       </div>
@@ -89,6 +78,10 @@
 curl -X POST http://localhost:8080/v1/{{ .tenant.Slug }}/analyze \
   -H <span class="string">"Authorization: Bearer {{ .tenant.TokenPlain }}"</span> \
   -H <span class="string">"Content-Type: application/json"</span> \
+  <span style="color: var(--gris-medio);"># Opcional: especificá el proveedor si tenés más de uno activo</span>
+  -H <span class="string">"X-Provider: mistral"</span> \
+  <span style="color: var(--gris-medio);"># Opcional: forzar un modelo específico (default: open-mistral-nemo)</span>
+  -H <span class="string">"X-Model: mistral-large-latest"</span> \
   -d <span class="string">'{"message": "cuanto facture hoy"}'</span></div>
 
         <h3 style="font-size: 14px; margin-top: 32px; margin-bottom: 4px;">JavaScript (Fetch)</h3>
@@ -97,7 +90,9 @@ fetch(<span class="string">"http://localhost:8080/v1/{{ .tenant.Slug }}/analyze"
   method: <span class="string">"POST"</span>,
   headers: {
     <span class="string">"Authorization"</span>: <span class="string">"Bearer {{ .tenant.TokenPlain }}"</span>,
-    <span class="string">"Content-Type"</span>: <span class="string">"application/json"</span>
+    <span class="string">"Content-Type"</span>: <span class="string">"application/json"</span>,
+    <span class="string">"X-Provider"</span>: <span class="string">"mistral"</span>, <span style="color: var(--gris-medio);">// Opcional</span>
+    <span class="string">"X-Model"</span>: <span class="string">"mistral-large-latest"</span> <span style="color: var(--gris-medio);">// Opcional</span>
   },
   body: JSON.stringify({
     message: <span class="string">"cuanto facture hoy"</span>

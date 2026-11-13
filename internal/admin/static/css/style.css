@@ -886,3 +886,20 @@ select option {
   width: 240px; 
   text-align: right; 
 }
+
+
+
+.code-block {
+  background: var(--tinta);
+  color: #00E5A0;
+  padding: 20px;
+  font-family: ui-monospace, 'Courier New', monospace;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.6;
+  margin-top: 12px;
+}
+.code-block .comment { color: #737373; }
+.code-block .string { color: #FBBF24; }

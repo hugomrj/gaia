@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"time" // <-- NUEVO
 
+	"github.com/gin-contrib/cors" // <-- NUEVO
 	"github.com/gin-gonic/gin"
 
 	adminPkg "gaia/internal/admin"
@@ -19,6 +21,25 @@ import (
 // El Brain se crea acá internamente (stateless, sin key global).
 func Setup(adminUser, adminPasswordHash string, store *tenant.Store) *gin.Engine {
 	router := gin.Default()
+
+	// ==========================================
+	// CONFIGURACIÓN DE CORS
+	// ==========================================
+	router.Use(cors.New(cors.Config{
+		AllowAllOrigins: true, // En prod: cambiar por AllowOrigins: []string{"https://tu-dominio.com"}
+		AllowMethods:    []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{
+			"Origin", 
+			"Content-Type", 
+			"Accept", 
+			"Authorization", 
+			"X-Provider", // <-- Permitimos el header de la Fase 2
+			"X-Model",    // <-- Permitimos el header de la Fase 2
+		},
+		ExposeHeaders: []string{"Content-Length"},
+		MaxAge:        12 * time.Hour,
+	}))
+	// ==========================================
 
 	// 1. Configuración de vistas y estáticos (Admin Panel)
 	router.LoadHTMLGlob("internal/admin/templates/*.html")
